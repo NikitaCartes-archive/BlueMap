@@ -62,10 +62,20 @@ public interface RenderSettings {
 	}
 	
 	/**
-	 * If gzip compression will be used to compress the generated files
+	 * Which compression will be used to compress the generated files.
+	 * 0 — no compression
+	 * 1 — gzip
+	 * 2 — brotli
 	 */
-	default boolean useGzipCompression() {
-		return true;
+	default int getCompressionType() {
+		return 1;
+	}
+
+	/**
+	 * Default compression level for brotli. Same speed as gzip but smaller size.
+	 */
+	default int getCompressionLevel() {
+		return 6;
 	}
 	
 }

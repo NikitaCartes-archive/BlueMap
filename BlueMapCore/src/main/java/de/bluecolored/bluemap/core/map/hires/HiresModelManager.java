@@ -42,24 +42,29 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
+import com.nixxcode.jvmbrotli.enc.Encoder;
+import com.nixxcode.jvmbrotli.enc.BrotliOutputStream;
+
 public class HiresModelManager {
 
 	private final Path fileRoot;
 	private final HiresModelRenderer renderer;
 	private final Grid tileGrid;
-	private final boolean useGzip;
+	private final int compressionType;
+	private final int compressionLevel;
 
 	public HiresModelManager(Path fileRoot, ResourcePack resourcePack, RenderSettings renderSettings, Grid tileGrid) {
 		this(fileRoot, new HiresModelRenderer(resourcePack, renderSettings), tileGrid, renderSettings.useGzipCompression());
 	}
 
-	public HiresModelManager(Path fileRoot, HiresModelRenderer renderer, Grid tileGrid, boolean useGzip) {
+	public HiresModelManager(Path fileRoot, HiresModelRenderer renderer, Grid tileGrid, int compressionType, int compressionLevel) {
 		this.fileRoot = fileRoot;
 		this.renderer = renderer;
 
 		this.tileGrid = tileGrid;
 		
-		this.useGzip = useGzip;
+		this.compressionType = compressionType;
+		this.compressionLevel = compressionLevel;
 	}
 	
 	/**
@@ -87,7 +92,16 @@ public class HiresModelManager {
 		
 		try {
 			OutputStream os = new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file));
-			if (useGzip) os = new GZIPOutputStream(os);
+			switch (compressionType) {
+				case 1:
+					os = new GZIPOutputStream(os);
+					break;
+				case 2:
+					Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
+					os = new BrotliOutputStream(os, params);
+				default:
+					break;
+			}
 			OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
 			try (
 				PrintWriter pw = new PrintWriter(osw);
@@ -149,8 +163,8 @@ public class HiresModelManager {
 	/**
 	 * Returns the file for a tile
 	 */
-	public File getFile(Vector2i tilePos, boolean gzip){
-		return FileUtils.coordsToFile(fileRoot, tilePos, "json" + (gzip ? ".gz" : ""));
+	public File getFile(Vector2i tilePos, int compressionType){
+		return FileUtils.coordsToFile(fileRoot, tilePos, "json" + (compressionType == 0 ? "" : (compressionType == 1 ? ".gz" : ".br")));
 	}
 	
 }

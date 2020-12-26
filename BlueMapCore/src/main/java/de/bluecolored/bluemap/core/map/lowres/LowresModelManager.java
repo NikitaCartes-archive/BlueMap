@@ -44,17 +44,19 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.GZIPInputStream;
+import com.nixxcode.jvmbrotli.dec.BrotliInputStream;
 
 public class LowresModelManager {
 	
 	private final Path fileRoot;
 	private final Vector2i pointsPerLowresTile;
 	private final Vector2i pointsPerHiresTile;
-	private final boolean useGzip;
+	private final int compressionType;
+	private final int compressionLevel;
 
 	private final Map<File, CachedModel> models;
 		
-	public LowresModelManager(Path fileRoot, Vector2i pointsPerLowresTile, Vector2i pointsPerHiresTile, boolean useGzip) {
+	public LowresModelManager(Path fileRoot, Vector2i pointsPerLowresTile, Vector2i pointsPerHiresTile, int compressionType, int compressionLevel) {
 		this.fileRoot = fileRoot;
 		
 		this.pointsPerLowresTile = pointsPerLowresTile;
@@ -62,7 +64,8 @@ public class LowresModelManager {
 		
 		models = new ConcurrentHashMap<>();
 		
-		this.useGzip = useGzip;
+		this.compressionType = compressionType;
+		this.compressionLevel = compressionLevel;
 	}
 	
 	/**
@@ -163,13 +166,13 @@ public class LowresModelManager {
 	/**
 	 * Returns the file for a tile
 	 */
-	public File getFile(Vector2i tile, boolean useGzip){
-		return FileUtils.coordsToFile(fileRoot, tile, "json" + (useGzip ? ".gz" : ""));
+	public File getFile(Vector2i tile, int compressionType){
+		return FileUtils.coordsToFile(fileRoot, tile, "json" + (compressionType == 0 ? "" : (compressionType == 1 ? ".gz" : ".br")));
 	}
 	
 	private LowresModel getModel(UUID world, Vector2i tile) {
 		
-		File modelFile = getFile(tile, useGzip);
+		File modelFile = getFile(tile, compressionType);
 		CachedModel model = models.get(modelFile);
 
 		if (model == null){
@@ -180,7 +183,15 @@ public class LowresModelManager {
 					if (modelFile.exists()){
 						try (FileInputStream fis = new FileInputStream(modelFile)) {
 							InputStream is = fis;
-							if (useGzip) is = new GZIPInputStream(is);
+							switch (compressionType) {
+								case 1:
+									is = new GZIPInputStream(is);
+									break;
+								case 2:
+									is = new BrotliInputStream(is);
+								default:
+									break;
+							}
 							
 							String json = IOUtils.toString(is, StandardCharsets.UTF_8);	
 							
@@ -238,7 +249,7 @@ public class LowresModelManager {
 	private synchronized void saveAndRemoveModel(File modelFile, CachedModel model) {
 		models.remove(modelFile);
 		try {
-			model.save(modelFile, false, useGzip);
+			model.save(modelFile, false, compressionType, compressionLevel);
 			//logger.logDebug("Saved and unloaded lowres tile: " + model.getTile());
 		} catch (IOException ex) {
 			Logger.global.logError("Failed to save and unload lowres-model: " + modelFile, ex);
@@ -247,7 +258,7 @@ public class LowresModelManager {
 	
 	private void saveModel(File modelFile, CachedModel model) {
 		try {
-			model.save(modelFile, false, useGzip);
+			model.save(modelFile, false, compressionType, compressionLevel);
 			//logger.logDebug("Saved lowres tile: " + model.getTile());
 		} catch (IOException ex) {
 			Logger.global.logError("Failed to save lowres-model: " + modelFile, ex);
