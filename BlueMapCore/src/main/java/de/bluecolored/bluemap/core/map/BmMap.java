@@ -77,7 +77,7 @@ public class BmMap {
 				fileRoot.resolve("lowres"),
 				new Vector2i(settings.getLowresPointsPerLowresTile(), settings.getLowresPointsPerLowresTile()),
 				new Vector2i(settings.getLowresPointsPerHiresTile(), settings.getLowresPointsPerHiresTile()),
-				settings.useGzipCompression()
+				settings.getCompression()
 		);
 	}
 

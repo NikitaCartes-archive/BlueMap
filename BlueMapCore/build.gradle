@@ -7,6 +7,10 @@ dependencies {
     api 'org.spongepowered:configurate-hocon:4.1.1'
     api 'org.spongepowered:configurate-gson:4.1.1'
     api 'com.github.Querz:NBT:4.0'
+    api group: 'com.nixxcode.jvmbrotli', name: 'jvmbrotli', version: '0.2.0'
+    api group: 'com.nixxcode.jvmbrotli', name: 'jvmbrotli-linux-x86-amd64', version: '0.2.0'
+    api group: 'com.nixxcode.jvmbrotli', name: 'jvmbrotli-darwin-x86-amd64', version: '0.2.0'
+    api group: 'com.nixxcode.jvmbrotli', name: 'jvmbrotli-win32-x86-amd64', version: '0.2.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'
 }
@@ -19,7 +23,7 @@ processResources {
 	from(sourceSets.main.resources.srcDirs) {
 		include 'de/bluecolored/bluemap/version.json'
         duplicatesStrategy = DuplicatesStrategy.WARN
-		
+
 		expand (
 			version: project.version
 		)

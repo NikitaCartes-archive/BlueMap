@@ -33,6 +33,7 @@ import org.spongepowered.configurate.ConfigurationNode;
 
 import java.io.IOException;
 import java.util.regex.Pattern;
+import com.nixxcode.jvmbrotli.common.BrotliLoader;
 
 public class MapConfig implements MapSettings {
 	private static final Pattern VALID_ID_PATTERN = Pattern.compile("[a-zA-Z0-9_]+");
@@ -50,7 +51,9 @@ public class MapConfig implements MapSettings {
 	private Vector3i min, max;
 	private boolean renderEdges;
 	
-	private boolean useGzip;
+	private int compressionType;
+	private int compressionLevel;
+
 	private boolean ignoreMissingLightData;
 	
 	private int hiresTileSize;
@@ -98,8 +101,24 @@ public class MapConfig implements MapSettings {
 		//renderEdges
 		this.renderEdges = node.node("renderEdges").getBoolean(true);
 
-		//useCompression
-		this.useGzip = node.node("useCompression").getBoolean(true);
+		//useCompression/compressionType
+		String comressionType = node.node("useCompression").getString("true");
+		if (comressionType.equals("false")) this.compressionType = 0;
+		else if (comressionType.equals("true")) this.compressionType = 1;
+		else if (comressionType.equals("gzip")) this.compressionType = 1;
+		else if (comressionType.equals("brotli")) {
+			try {
+				BrotliLoader.isBrotliAvailable();
+				this.compressionType = 2;
+			} catch (Throwable UnsatisfiedLinkError) {
+				this.compressionType = 1;
+				// ToDo: Print to log about fallback to gzip
+			}
+		}
+		else throw new IOException("Invalid configuration: value of useCompression is not understandable");
+
+		//compressionLevel
+		this.compressionLevel = node.node("compressionLevel").getInt(6);
 		
 		//ignoreMissingLightData
 		this.ignoreMissingLightData = node.node("ignoreMissingLightData").getBoolean(false);
@@ -183,8 +202,13 @@ public class MapConfig implements MapSettings {
 	}
 	
 	@Override
-	public boolean useGzipCompression() {
-		return useGzip;
+	public int getCompressionType() {
+		return compressionType;
+	}
+
+	@Override
+	public int getCompressionLevel() {
+		return compressionLevel;
 	}
 	
 }

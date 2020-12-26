@@ -38,6 +38,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.GZIPOutputStream;
 
+import com.nixxcode.jvmbrotli.enc.Encoder;
+import com.nixxcode.jvmbrotli.enc.BrotliOutputStream;
+
 public class LowresModel {
 
 	private final BufferGeometry model;
@@ -80,7 +83,7 @@ public class LowresModel {
 	 * Saves this model to its file
 	 * @param force if this is false, the model is only saved if it has any changes
 	 */
-	public void save(File file, boolean force, boolean useGzip) throws IOException {
+	public void save(File file, boolean force, int compressionType, int compressionLevel) throws IOException {
 		if (!force && !hasUnsavedChanges) return;
 		this.hasUnsavedChanges = false;
 
@@ -93,7 +96,16 @@ public class LowresModel {
 		
 		synchronized (fileLock) {
 			OutputStream os = new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file));
-			if (useGzip) os = new GZIPOutputStream(os);
+			switch (compressionType) {
+				case 1:
+					os = new GZIPOutputStream(os);
+					break;
+				case 2:
+					Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
+					os = new BrotliOutputStream(os, params);
+				default:
+					break;
+			}
 			OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
 			try (
 				PrintWriter pw = new PrintWriter(osw);
@@ -153,7 +165,7 @@ public class LowresModel {
 		flush();
 		return model;
 	}
-	
+
 	/**
 	 * a point on this lowres-model-grid
 	 */
