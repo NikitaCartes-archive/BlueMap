@@ -31,15 +31,12 @@ import de.bluecolored.bluemap.core.util.AtomicFileHelper;
 import de.bluecolored.bluemap.core.util.FileUtils;
 import de.bluecolored.bluemap.core.util.MathUtils;
 import de.bluecolored.bluemap.core.util.ModelUtils;
+import de.bluecolored.bluemap.core.CompressionConfig;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.GZIPOutputStream;
-
-import com.nixxcode.jvmbrotli.enc.Encoder;
-import com.nixxcode.jvmbrotli.enc.BrotliOutputStream;
 
 public class LowresModel {
 
@@ -83,7 +80,7 @@ public class LowresModel {
 	 * Saves this model to its file
 	 * @param force if this is false, the model is only saved if it has any changes
 	 */
-	public void save(File file, boolean force, int compressionType, int compressionLevel) throws IOException {
+	public void save(File file, boolean force, CompressionConfig compressionType) throws IOException {
 		if (!force && !hasUnsavedChanges) return;
 		this.hasUnsavedChanges = false;
 
@@ -95,17 +92,7 @@ public class LowresModel {
 		}
 		
 		synchronized (fileLock) {
-			OutputStream os = new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file));
-			switch (compressionType) {
-				case 1:
-					os = new GZIPOutputStream(os);
-					break;
-				case 2:
-					Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
-					os = new BrotliOutputStream(os, params);
-				default:
-					break;
-			}
+			OutputStream os = compressionType.getOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
 			OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
 			try (
 				PrintWriter pw = new PrintWriter(osw);

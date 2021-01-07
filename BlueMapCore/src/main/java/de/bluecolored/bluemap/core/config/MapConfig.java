@@ -29,11 +29,11 @@ import com.flowpowered.math.vector.Vector3i;
 import de.bluecolored.bluemap.core.map.MapSettings;
 import de.bluecolored.bluemap.core.map.hires.RenderSettings;
 import de.bluecolored.bluemap.core.util.ConfigUtils;
+import de.bluecolored.bluemap.core.config.CompressionConfig;
 import ninja.leaping.configurate.ConfigurationNode;
 
 import java.io.IOException;
 import java.util.regex.Pattern;
-import com.nixxcode.jvmbrotli.common.BrotliLoader;
 
 public class MapConfig implements MapSettings {
 	private static final Pattern VALID_ID_PATTERN = Pattern.compile("[a-zA-Z0-9_]+");
@@ -51,9 +51,8 @@ public class MapConfig implements MapSettings {
 	private Vector3i min, max;
 	private boolean renderEdges;
 	
-	private int compressionType;
-	private int compressionLevel;
-
+	private CompressionConfig compressionType;
+	
 	private boolean ignoreMissingLightData;
 	
 	private int hiresTileSize;
@@ -101,25 +100,9 @@ public class MapConfig implements MapSettings {
 		//renderEdges
 		this.renderEdges = node.getNode("renderEdges").getBoolean(true);
 
-		//useCompression/compressionType
-		String comressionType = node.getNode("useCompression").getString("true");
-		if (comressionType.equals("false")) this.compressionType = 0;
-		else if (comressionType.equals("true")) this.compressionType = 1;
-		else if (comressionType.equals("gzip")) this.compressionType = 1;
-		else if (comressionType.equals("brotli")) {
-			try {
-				BrotliLoader.isBrotliAvailable();
-				this.compressionType = 2;
-			} catch (Throwable UnsatisfiedLinkError) {
-				this.compressionType = 1;
-				// ToDo: Print to log about fallback to gzip
-			}
-		}
-		else throw new IOException("Invalid configuration: value of useCompression is not understandable");
+		// useCompression and compressionLevel
+		this.compressionType = new CompressionConfig(node.getNode("useCompression").getString("true"), node.getNode("compressionLevel").getInt(6));
 
-		//compressionLevel
-		this.compressionLevel = node.getNode("compressionLevel").getInt(6);
-		
 		//ignoreMissingLightData
 		this.ignoreMissingLightData = node.getNode("ignoreMissingLightData").getBoolean(false);
 		
@@ -202,13 +185,8 @@ public class MapConfig implements MapSettings {
 	}
 	
 	@Override
-	public int getCompressionType() {
+	public CompressionConfig getCompressionType() {
 		return compressionType;
-	}
-
-	@Override
-	public int getCompressionLevel() {
-		return compressionLevel;
 	}
 	
 }
