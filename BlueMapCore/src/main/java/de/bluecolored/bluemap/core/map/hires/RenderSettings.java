@@ -26,6 +26,8 @@ package de.bluecolored.bluemap.core.map.hires;
 
 import com.flowpowered.math.vector.Vector3i;
 
+import de.bluecolored.bluemap.core.CompressionConfig;
+
 public interface RenderSettings {
 	
 	Vector3i DEFAULT_MIN = Vector3i.from(Integer.MIN_VALUE);
@@ -63,12 +65,12 @@ public interface RenderSettings {
 	
 	/**
 	 * Which compression will be used to compress the generated files.
-	 * 0 — no compression
-	 * 1 — gzip
-	 * 2 — brotli
+	 * false/PLAIN — no compression
+	 * true/GZIP — gzip
+	 * BROTLI — brotli
 	 */
-	default int getCompressionType() {
-		return 1;
+	default CompressionConfig getCompressionType() {
+		return new CompressionConfig("true");
 	}
 
 	/**
