@@ -24,6 +24,7 @@
  */
 package de.bluecolored.bluemap.common;
 
+import com.flowpowered.math.vector.Vector2i;
 import de.bluecolored.bluemap.common.plugin.Plugin;
 import de.bluecolored.bluemap.common.plugin.serverinterface.ServerInterface;
 import de.bluecolored.bluemap.core.MinecraftVersion;
@@ -134,7 +135,7 @@ public class BlueMapService {
 
 		ConfigManager configManager = getConfigManager();
 		configManager.loadResourceConfigs(configFolder, getResourcePack());
-		
+
 		for (MapConfig mapConfig : getRenderConfig().getMapConfigs()) {
 			String id = mapConfig.getId();
 			String name = mapConfig.getName();
@@ -152,7 +153,7 @@ public class BlueMapService {
 				Logger.global.logError("Failed to load map '" + id + "': Failed to get UUID for the world!", e);
 				continue;
 			}
-			
+
 			World world = worlds.get(worldUUID);
 			if (world == null) {
 				try {
@@ -204,7 +205,7 @@ public class BlueMapService {
 
 			File resourcePackFolder = new File(configFolder, "resourcepacks");
 			FileUtils.forceMkdir(resourcePackFolder);
-			
+
 			if (!defaultResourceFile.exists()) {
 				if (getCoreConfig().isDownloadAccepted()) {
 					

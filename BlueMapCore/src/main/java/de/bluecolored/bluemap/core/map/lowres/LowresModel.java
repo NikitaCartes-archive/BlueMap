@@ -80,7 +80,7 @@ public class LowresModel {
 	 * Saves this model to its file
 	 * @param force if this is false, the model is only saved if it has any changes
 	 */
-	public void save(File file, boolean force, CompressionConfig compressionType) throws IOException {
+	public void save(File file, boolean force, Compression compression) throws IOException {
 		if (!force && !hasUnsavedChanges) return;
 		this.hasUnsavedChanges = false;
 
