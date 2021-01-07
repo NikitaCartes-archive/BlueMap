@@ -25,47 +25,44 @@
 package de.bluecolored.bluemap.core.render.hires;
 package de.bluecolored.bluemap.core.map.hires;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
 import com.flowpowered.math.vector.Vector2i;
 import com.flowpowered.math.vector.Vector3d;
 import com.flowpowered.math.vector.Vector3i;
 import de.bluecolored.bluemap.core.logger.Logger;
 import de.bluecolored.bluemap.core.resourcepack.ResourcePack;
+import de.bluecolored.bluemap.core.util.AABB;
+import de.bluecolored.bluemap.core.util.Compression;
 import de.bluecolored.bluemap.core.util.AtomicFileHelper;
 import de.bluecolored.bluemap.core.util.FileUtils;
 import de.bluecolored.bluemap.core.CompressionConfig;
 import de.bluecolored.bluemap.core.world.Grid;
 import de.bluecolored.bluemap.core.world.World;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 public class HiresModelManager {
 
 	private final Path fileRoot;
 	private final HiresModelRenderer renderer;
 	private final Grid tileGrid;
-	private final CompressionConfig compressionType;
+	private final Compression compression;
 
 	public HiresModelManager(Path fileRoot, ResourcePack resourcePack, RenderSettings renderSettings, Grid tileGrid) {
 		this(fileRoot, new HiresModelRenderer(resourcePack, renderSettings), tileGrid, renderSettings.useGzipCompression());
 	}
 
-	public HiresModelManager(Path fileRoot, HiresModelRenderer renderer, Grid tileGrid, CompressionConfig compressionType) {
+	public HiresModelManager(Path fileRoot, HiresModelRenderer renderer, Grid tileGrid, Compression compression) {
 		this.fileRoot = fileRoot;
 		this.renderer = renderer;
 
 		this.tileGrid = tileGrid;
 		
-		this.compressionType = compressionType;
+		this.compression = compression;
 	}
 	
 	/**
@@ -154,8 +151,8 @@ public class HiresModelManager {
 	/**
 	 * Returns the file for a tile
 	 */
-	public File getFile(Vector2i tilePos, String fileExtension){
-		return FileUtils.coordsToFile(fileRoot, tilePos, fileExtension);
+	public File getFile(Vector2i tilePos){
+		return FileUtils.coordsToFile(fileRoot, tilePos, "json" + compression.getCompressionType().getFileExtension());
 	}
 	
 }

@@ -25,8 +25,8 @@
 package de.bluecolored.bluemap.core.map.hires;
 
 import com.flowpowered.math.vector.Vector3i;
-
-import de.bluecolored.bluemap.core.CompressionConfig;
+import de.bluecolored.bluemap.core.util.Compression;
+import de.bluecolored.bluemap.core.util.CompressionType;
 
 public interface RenderSettings {
 	
@@ -64,20 +64,10 @@ public interface RenderSettings {
 	}
 	
 	/**
-	 * Which compression will be used to compress the generated files.
-	 * false/PLAIN — no compression
-	 * true/GZIP — gzip
-	 * BROTLI — brotli
+	 * The compression that should be used to compress the generated files.
 	 */
-	default CompressionConfig getCompressionType() {
-		return new CompressionConfig("true");
-	}
-
-	/**
-	 * Default compression level for brotli. Same speed as gzip but smaller size.
-	 */
-	default int getCompressionLevel() {
-		return 6;
+	default Compression getCompression() {
+		return new Compression(CompressionType.GZIP);
 	}
 	
 }

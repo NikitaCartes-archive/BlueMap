@@ -29,7 +29,8 @@ import com.flowpowered.math.vector.Vector3i;
 import de.bluecolored.bluemap.core.map.MapSettings;
 import de.bluecolored.bluemap.core.map.hires.RenderSettings;
 import de.bluecolored.bluemap.core.util.ConfigUtils;
-import de.bluecolored.bluemap.core.config.CompressionConfig;
+import de.bluecolored.bluemap.core.util.Compression;
+import de.bluecolored.bluemap.core.util.CompressionType;
 import ninja.leaping.configurate.ConfigurationNode;
 
 import java.io.IOException;
@@ -51,7 +52,7 @@ public class MapConfig implements MapSettings {
 	private Vector3i min, max;
 	private boolean renderEdges;
 	
-	private CompressionConfig compressionType;
+	private Compression compression;
 	
 	private boolean ignoreMissingLightData;
 	
@@ -100,8 +101,8 @@ public class MapConfig implements MapSettings {
 		//renderEdges
 		this.renderEdges = node.getNode("renderEdges").getBoolean(true);
 
-		// useCompression and compressionLevel
-		this.compressionType = new CompressionConfig(node.getNode("useCompression").getString("true"), node.getNode("compressionLevel").getInt(6));
+		//compression and compressionLevel
+		this.compression = loadCompressionSettings(node);
 
 		//ignoreMissingLightData
 		this.ignoreMissingLightData = node.getNode("ignoreMissingLightData").getBoolean(false);
@@ -116,7 +117,34 @@ public class MapConfig implements MapSettings {
 		if (blocksPerPoint != Math.floor(blocksPerPoint)) throw new IOException("Invalid configuration: Invalid map resolution settings of map " + id + ": hires.tileSize / lowres.pointsPerTile has to be an integer result");
 		
 	}
-	
+
+	private Compression loadCompressionSettings(ConfigurationNode node) throws IOException {
+		String compressionTypeId = node.getNode("compressionType").getString("gzip");
+		CompressionType compressionType = CompressionType.GZIP;
+		try {
+			compressionType = CompressionType.forId(compressionTypeId);
+		} catch (NoSuchElementException ex) {
+			throw new IOException("Invalid configuration: Unknown CompressionType '" + compressionTypeId + "'!");
+		}
+
+		//backwards-compatibility for 'useCompression' setting
+		if (node.getNode("compression").isVirtual()){
+			boolean useCompression = node.getNode("useCompression").getBoolean(true);
+			compressionType = useCompression ? CompressionType.GZIP : CompressionType.PLAIN;
+		}
+
+		int compressionLevel = node.getNode("compressionLevel").getInt(-1);
+
+		//check brotli availabillity
+		if (compressionType == CompressionType.BROTLI && !BrotliLoader.isBrotliAvailable()){
+			Logger.global.logWarning("Library for brotli-compression is unavailable! Falling back to gzip for map '" + this.id + "'!");
+			compressionType = CompressionType.GZIP;
+			compressionLevel = -1; //also use default compression-level if we have to fall-back to gzip
+		}
+
+		return new Compression(compressionType, compressionLevel == -1 ? compressionType.getDefaultCompressionLevel() : compressionLevel);
+	}
+
 	public String getId() {
 		return id;
 	}
@@ -185,8 +213,8 @@ public class MapConfig implements MapSettings {
 	}
 	
 	@Override
-	public CompressionConfig getCompressionType() {
-		return compressionType;
+	public Compression getCompression() {
+		return compression;
 	}
 	
 }
