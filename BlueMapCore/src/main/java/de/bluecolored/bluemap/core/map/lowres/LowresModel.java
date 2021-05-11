@@ -31,7 +31,7 @@ import de.bluecolored.bluemap.core.util.AtomicFileHelper;
 import de.bluecolored.bluemap.core.util.FileUtils;
 import de.bluecolored.bluemap.core.util.MathUtils;
 import de.bluecolored.bluemap.core.util.ModelUtils;
-import de.bluecolored.bluemap.core.CompressionConfig;
+import de.bluecolored.bluemap.core.util.Compression;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -92,7 +92,7 @@ public class LowresModel {
 		}
 		
 		synchronized (fileLock) {
-			OutputStream os = compressionType.getOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
+			OutputStream os = compression.createOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
 			OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
 			try (
 				PrintWriter pw = new PrintWriter(osw);

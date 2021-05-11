@@ -50,6 +50,10 @@ public class Compression {
         return compressionLevel;
     }
 
+    public String getFileExtension() {
+        return compressionType.getFileExtension();
+    }
+
     public OutputStream createOutputStream(OutputStream out) throws IOException {
         return compressionType.createOutputStream(out, compressionLevel);
     }

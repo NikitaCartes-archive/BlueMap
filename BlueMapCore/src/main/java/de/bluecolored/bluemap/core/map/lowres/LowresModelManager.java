@@ -178,7 +178,7 @@ public class LowresModelManager {
 					
 					if (modelFile.exists()){
 						try (FileInputStream fis = new FileInputStream(modelFile)) {
-							InputStream is = compressionType.getInputStream(fis);
+							InputStream is = compression.createInputStream(fis);
 
 							String json = IOUtils.toString(is, StandardCharsets.UTF_8);	
 							
