@@ -22,7 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package de.bluecolored.bluemap.core.render.hires;
 package de.bluecolored.bluemap.core.map.hires;
 
 import com.flowpowered.math.vector.Vector2i;
@@ -30,11 +29,9 @@ import com.flowpowered.math.vector.Vector3d;
 import com.flowpowered.math.vector.Vector3i;
 import de.bluecolored.bluemap.core.logger.Logger;
 import de.bluecolored.bluemap.core.resourcepack.ResourcePack;
-import de.bluecolored.bluemap.core.util.AABB;
 import de.bluecolored.bluemap.core.util.Compression;
 import de.bluecolored.bluemap.core.util.AtomicFileHelper;
 import de.bluecolored.bluemap.core.util.FileUtils;
-import de.bluecolored.bluemap.core.CompressionConfig;
 import de.bluecolored.bluemap.core.world.Grid;
 import de.bluecolored.bluemap.core.world.World;
 
@@ -53,7 +50,7 @@ public class HiresModelManager {
 	private final Compression compression;
 
 	public HiresModelManager(Path fileRoot, ResourcePack resourcePack, RenderSettings renderSettings, Grid tileGrid) {
-		this(fileRoot, new HiresModelRenderer(resourcePack, renderSettings), tileGrid, renderSettings.useGzipCompression());
+		this(fileRoot, new HiresModelRenderer(resourcePack, renderSettings), tileGrid, renderSettings.getCompression());
 	}
 
 	public HiresModelManager(Path fileRoot, HiresModelRenderer renderer, Grid tileGrid, Compression compression) {
@@ -86,10 +83,10 @@ public class HiresModelManager {
 	}
 	
 	private void save(String modelJson, Vector2i tile){
-		File file = getFile(tile, compressionType.getFileExtension());
+		File file = getFile(tile);
 		
 		try {
-			OutputStream os = compressionType.getOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
+			OutputStream os = compression.createOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
 			OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
 			try (
 				PrintWriter pw = new PrintWriter(osw);
