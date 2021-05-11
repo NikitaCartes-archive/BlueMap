@@ -104,7 +104,7 @@ public class MapConfig implements MapSettings {
 		//renderEdges
 		this.renderEdges = node.node("renderEdges").getBoolean(true);
 
-		//compression and compressionLevel
+		//compressionType and compressionLevel
 		this.compression = loadCompressionSettings(node);
 
 		//ignoreMissingLightData
@@ -131,7 +131,7 @@ public class MapConfig implements MapSettings {
 		}
 
 		//backwards-compatibility for 'useCompression' setting
-		if (node.node("compression").virtual()){
+		if (node.node("compressionType").virtual()){
 			boolean useCompression = node.node("useCompression").getBoolean(true);
 			compressionType = useCompression ? CompressionType.GZIP : CompressionType.PLAIN;
 		}
