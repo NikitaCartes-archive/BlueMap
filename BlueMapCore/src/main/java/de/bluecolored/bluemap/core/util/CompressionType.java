@@ -63,7 +63,7 @@ public enum CompressionType {
 			return new ExtendedGZIPOutputStream(out, compressionLevel);
 		}
 	},
-	BROTLI("brotli", ".br", -1){
+	BROTLI("brotli", ".br", 6){
 		@Override
 		public InputStream createInputStream(InputStream in) throws IOException {
 			return new BrotliInputStream(in);
