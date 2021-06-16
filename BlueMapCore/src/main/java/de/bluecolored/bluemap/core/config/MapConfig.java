@@ -26,10 +26,10 @@ package de.bluecolored.bluemap.core.config;
 
 import com.flowpowered.math.vector.Vector2i;
 import com.flowpowered.math.vector.Vector3i;
+import de.bluecolored.bluemap.core.debug.DebugDump;
 import com.nixxcode.jvmbrotli.common.BrotliLoader;
 import de.bluecolored.bluemap.core.logger.Logger;
 import de.bluecolored.bluemap.core.map.MapSettings;
-import de.bluecolored.bluemap.core.map.hires.RenderSettings;
 import de.bluecolored.bluemap.core.util.ConfigUtils;
 import de.bluecolored.bluemap.core.util.Compression;
 import de.bluecolored.bluemap.core.util.CompressionType;
@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.regex.Pattern;
 
+@DebugDump
 public class MapConfig implements MapSettings {
 	private static final Pattern VALID_ID_PATTERN = Pattern.compile("[a-zA-Z0-9_]+");
 	
