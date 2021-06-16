@@ -27,15 +27,15 @@ package de.bluecolored.bluemap.common;
 import com.flowpowered.math.vector.Vector2i;
 import de.bluecolored.bluemap.common.plugin.Plugin;
 import de.bluecolored.bluemap.common.plugin.serverinterface.ServerInterface;
+import de.bluecolored.bluemap.common.web.WebSettings;
 import de.bluecolored.bluemap.core.MinecraftVersion;
 import de.bluecolored.bluemap.core.config.*;
 import de.bluecolored.bluemap.core.logger.Logger;
 import de.bluecolored.bluemap.core.map.BmMap;
-import de.bluecolored.bluemap.core.mca.MCAWorld;
 import de.bluecolored.bluemap.core.map.hires.RenderSettings;
+import de.bluecolored.bluemap.core.mca.MCAWorld;
 import de.bluecolored.bluemap.core.resourcepack.ParseResourceException;
 import de.bluecolored.bluemap.core.resourcepack.ResourcePack;
-import de.bluecolored.bluemap.common.web.WebSettings;
 import de.bluecolored.bluemap.core.world.SlicedWorld;
 import de.bluecolored.bluemap.core.world.World;
 import org.apache.commons.io.FileUtils;
@@ -103,6 +103,7 @@ public class BlueMapService {
 	public synchronized WebSettings updateWebAppSettings() throws IOException, InterruptedException {
 		WebSettings webSettings = new WebSettings(new File(getRenderConfig().getWebRoot(), "data" + File.separator + "settings.json"));
 		webSettings.set(getRenderConfig().isUseCookies(), "useCookies");
+		webSettings.set(getRenderConfig().isEnableFreeFlight(), "freeFlightEnabled");
 		webSettings.setAllMapsEnabled(false);
 		for (BmMap map : getMaps().values()) {
 			webSettings.setMapEnabled(true, map.getId());
@@ -198,7 +199,7 @@ public class BlueMapService {
 	
 	public synchronized ResourcePack getResourcePack() throws IOException, InterruptedException {
 		if (resourcePack == null) {
-			File defaultResourceFile = new File(getCoreConfig().getDataFolder(), "minecraft-client-" + minecraftVersion.getVersionString() + ".jar");
+			File defaultResourceFile = new File(getCoreConfig().getDataFolder(), "minecraft-client-" + minecraftVersion.getResource().getVersion().getVersionString() + ".jar");
 			File resourceExtensionsFile = new File(getCoreConfig().getDataFolder(), "resourceExtensions.zip");
 
 			File textureExportFile = new File(getRenderConfig().getWebRoot(), "data" + File.separator + "textures.json");
@@ -211,9 +212,9 @@ public class BlueMapService {
 					
 					//download file
 					try {
-						Logger.global.logInfo("Downloading " + minecraftVersion.getClientDownloadUrl() + " to " + defaultResourceFile + " ...");
+						Logger.global.logInfo("Downloading " + minecraftVersion.getResource().getClientUrl() + " to " + defaultResourceFile + " ...");
 						FileUtils.forceMkdirParent(defaultResourceFile);
-						FileUtils.copyURLToFile(new URL(minecraftVersion.getClientDownloadUrl()), defaultResourceFile, 10000, 10000);
+						FileUtils.copyURLToFile(new URL(minecraftVersion.getResource().getClientUrl()), defaultResourceFile, 10000, 10000);
 					} catch (IOException e) {
 						throw new IOException("Failed to download resources!", e);
 					}
@@ -227,7 +228,7 @@ public class BlueMapService {
 			
 			if (resourceExtensionsFile.exists()) FileUtils.forceDelete(resourceExtensionsFile);
 			FileUtils.forceMkdirParent(resourceExtensionsFile);
-			FileUtils.copyURLToFile(Plugin.class.getResource("/de/bluecolored/bluemap/" + minecraftVersion.getResourcePrefix() + "/resourceExtensions.zip"), resourceExtensionsFile, 10000, 10000);
+			FileUtils.copyURLToFile(Plugin.class.getResource("/de/bluecolored/bluemap/" + minecraftVersion.getResource().getResourcePrefix() + "/resourceExtensions.zip"), resourceExtensionsFile, 10000, 10000);
 			
 			//find more resource packs
 			File[] resourcePacks = resourcePackFolder.listFiles();

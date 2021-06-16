@@ -44,7 +44,7 @@ import de.bluecolored.bluemap.api.marker.MarkerAPI;
 import de.bluecolored.bluemap.api.marker.MarkerSet;
 import de.bluecolored.bluemap.api.marker.POIMarker;
 import de.bluecolored.bluemap.common.plugin.Plugin;
-import de.bluecolored.bluemap.common.plugin.PluginStatus;
+import de.bluecolored.bluemap.common.plugin.PluginState;
 import de.bluecolored.bluemap.common.plugin.serverinterface.CommandSource;
 import de.bluecolored.bluemap.common.plugin.text.Text;
 import de.bluecolored.bluemap.common.plugin.text.TextColor;
@@ -233,6 +233,12 @@ public class Commands<S> {
 				.then(argument("id", StringArgumentType.word()).suggests(MarkerIdSuggestionProvider.getInstance())
 						.executes(this::removeMarkerCommand))
 				.build();
+
+		LiteralCommandNode<S> listMarkersCommand =
+				literal("list")
+				.requires(requirements("bluemap.marker"))
+				.executes(this::listMarkersCommand)
+				.build();
 		
 		// command tree
 		dispatcher.getRoot().addChild(baseCommand);
@@ -253,6 +259,7 @@ public class Commands<S> {
 		baseCommand.addChild(markerCommand);
 		markerCommand.addChild(createMarkerCommand);
 		markerCommand.addChild(removeMarkerCommand);
+		markerCommand.addChild(listMarkersCommand);
 	}
 
 	private <B extends ArgumentBuilder<S, B>> B addRenderArguments(B builder, Command<S> command) {
@@ -351,16 +358,19 @@ public class Commands<S> {
 
 		source.sendMessage(Text.of(TextFormat.BOLD, TextColor.BLUE, "Version: ", TextColor.WHITE, BlueMap.VERSION));
 		source.sendMessage(Text.of(TextColor.GRAY, "Implementation: ", TextColor.WHITE, plugin.getImplementationType()));
-		source.sendMessage(Text.of(TextColor.GRAY, "Minecraft compatibility: ", TextColor.WHITE, plugin.getMinecraftVersion().getVersionString()));
+		source.sendMessage(Text.of(
+				TextColor.GRAY, "Minecraft compatibility: ", TextColor.WHITE, plugin.getMinecraftVersion().getVersionString(),
+				TextColor.GRAY, " (" + plugin.getMinecraftVersion().getResource().getVersion().getVersionString() + ")"
+				));
 		source.sendMessage(Text.of(TextColor.GRAY, "Render-threads: ", TextColor.WHITE, renderThreadCount));
 		source.sendMessage(Text.of(TextColor.GRAY, "Available processors: ", TextColor.WHITE, Runtime.getRuntime().availableProcessors()));
 		source.sendMessage(Text.of(TextColor.GRAY, "Available memory: ", TextColor.WHITE, (Runtime.getRuntime().maxMemory() / 1024L / 1024L) + " MiB"));
 
-		if (plugin.getMinecraftVersion().isAtLeast(MinecraftVersion.MC_1_15)) {
+		if (plugin.getMinecraftVersion().isAtLeast(new MinecraftVersion(1, 15))) {
 			String clipboardValue =
 					"Version: " + BlueMap.VERSION + "\n" +
 					"Implementation: " + plugin.getImplementationType() + "\n" +
-					"Minecraft compatibility: " + plugin.getMinecraftVersion().getVersionString() + "\n" +
+					"Minecraft compatibility: " + plugin.getMinecraftVersion().getVersionString() + " (" + plugin.getMinecraftVersion().getResource().getVersion().getVersionString() + ")\n" +
 					"Render-threads: " + renderThreadCount + "\n" +
 					"Available processors: " + Runtime.getRuntime().availableProcessors() + "\n" +
 					"Available memory: " + Runtime.getRuntime().maxMemory() / 1024L / 1024L + " MiB";
@@ -537,7 +547,7 @@ public class Commands<S> {
 		
 		if (plugin.getRenderManager().isRunning()) {
 			new Thread(() -> {
-				plugin.getPluginStatus().setRenderThreadsEnabled(false);
+				plugin.getPluginState().setRenderThreadsEnabled(false);
 
 				plugin.getRenderManager().stop();
 				source.sendMessage(Text.of(TextColor.GREEN, "Render-Threads stopped!"));
@@ -557,7 +567,7 @@ public class Commands<S> {
 		
 		if (!plugin.getRenderManager().isRunning()) {
 			new Thread(() -> {
-				plugin.getPluginStatus().setRenderThreadsEnabled(true);
+				plugin.getPluginState().setRenderThreadsEnabled(true);
 
 				plugin.getRenderManager().start(plugin.getCoreConfig().getRenderThreadCount());
 				source.sendMessage(Text.of(TextColor.GREEN, "Render-Threads started!"));
@@ -584,10 +594,10 @@ public class Commands<S> {
 			return 0;
 		}
 
-		PluginStatus.MapStatus mapStatus = plugin.getPluginStatus().getMapStatus(map);
-		if (mapStatus.isUpdateEnabled()) {
+		PluginState.MapState mapState = plugin.getPluginState().getMapState(map);
+		if (mapState.isUpdateEnabled()) {
 			new Thread(() -> {
-				mapStatus.setUpdateEnabled(false);
+				mapState.setUpdateEnabled(false);
 
 				plugin.stopWatchingMap(map);
 				plugin.getRenderManager().removeRenderTasksIf(task -> {
@@ -625,10 +635,10 @@ public class Commands<S> {
 			return 0;
 		}
 
-		PluginStatus.MapStatus mapStatus = plugin.getPluginStatus().getMapStatus(map);
-		if (!mapStatus.isUpdateEnabled()) {
+		PluginState.MapState mapState = plugin.getPluginState().getMapState(map);
+		if (!mapState.isUpdateEnabled()) {
 			new Thread(() -> {
-				mapStatus.setUpdateEnabled(true);
+				mapState.setUpdateEnabled(true);
 
 				plugin.startWatchingMap(map);
 				plugin.getRenderManager().scheduleRenderTask(new MapUpdateTask(map));
@@ -829,7 +839,7 @@ public class Commands<S> {
 		
 		source.sendMessage(Text.of(TextColor.BLUE, "Maps loaded by BlueMap:"));
 		for (BmMap map : plugin.getMapTypes()) {
-			boolean unfrozen = plugin.getPluginStatus().getMapStatus(map).isUpdateEnabled();
+			boolean unfrozen = plugin.getPluginState().getMapState(map).isUpdateEnabled();
 			if (unfrozen) {
 				source.sendMessage(Text.of(
 						TextColor.GRAY, " - ",
@@ -954,6 +964,31 @@ public class Commands<S> {
 		}
 
 		source.sendMessage(Text.of(TextColor.GREEN, "Marker removed!"));
+		return 1;
+	}
+
+	public int listMarkersCommand(CommandContext<S> context) {
+		CommandSource source = commandSourceInterface.apply(context.getSource());
+
+		BlueMapAPI api = BlueMapAPI.getInstance().orElse(null);
+		if (api == null) {
+			source.sendMessage(Text.of(TextColor.RED, "MarkerAPI is not available, try ", TextColor.GRAY, "/bluemap reload"));
+			return 0;
+		}
+
+		source.sendMessage(Text.of(TextColor.BLUE, "All Markers:"));
+
+		int i = 0;
+		Collection<String> markerIds = MarkerIdSuggestionProvider.getInstance().getPossibleValues();
+		for (String markerId : markerIds) {
+			if (i++ >= 40) {
+				source.sendMessage(Text.of(TextColor.GRAY, "[" + (markerIds.size() - 40) + " more ...]"));
+				break;
+			}
+
+			source.sendMessage(Text.of(TextColor.GRAY, " - ", TextColor.WHITE, markerId));
+		}
+
 		return 1;
 	}
 	

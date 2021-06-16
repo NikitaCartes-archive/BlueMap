@@ -25,6 +25,7 @@
 package de.bluecolored.bluemap.core.map;
 
 import com.flowpowered.math.vector.Vector2i;
+import de.bluecolored.bluemap.core.BlueMap;
 import de.bluecolored.bluemap.core.logger.Logger;
 import de.bluecolored.bluemap.core.map.hires.HiresModel;
 import de.bluecolored.bluemap.core.map.hires.HiresModelManager;
@@ -37,6 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public class BmMap {
 
@@ -49,6 +51,11 @@ public class BmMap {
 
 	private final HiresModelManager hiresModelManager;
 	private final LowresModelManager lowresModelManager;
+
+	private Predicate<Vector2i> tileFilter;
+
+	private long renderTimeSumNanos;
+	private long tilesRendered;
 
 	public BmMap(String id, String name, World world, Path fileRoot, ResourcePack resourcePack, MapSettings settings) throws IOException {
 		this.id = Objects.requireNonNull(id);
@@ -63,7 +70,11 @@ public class BmMap {
 
 		File rstateFile = getRenderStateFile();
 		if (rstateFile.exists()) {
-			this.renderState.load(rstateFile);
+			try {
+				this.renderState.load(rstateFile);
+			} catch (IOException ex) {
+				Logger.global.logWarning("Failed to load render-state for map '" + getId() + "': " + ex);
+			}
 		}
 
 		this.hiresModelManager = new HiresModelManager(
@@ -79,11 +90,26 @@ public class BmMap {
 				new Vector2i(settings.getLowresPointsPerHiresTile(), settings.getLowresPointsPerHiresTile()),
 				settings.getCompression()
 		);
+
+		this.tileFilter = t -> true;
+
+		this.renderTimeSumNanos = 0;
+		this.tilesRendered = 0;
 	}
 
 	public void renderTile(Vector2i tile) {
+		if (!tileFilter.test(tile)) return;
+
+		long start = System.nanoTime();
+
 		HiresModel hiresModel = hiresModelManager.render(world, tile);
 		lowresModelManager.render(hiresModel);
+
+		long end = System.nanoTime();
+		long delta = end - start;
+
+		renderTimeSumNanos += delta;
+		tilesRendered ++;
 	}
 
 	public synchronized void save() {
@@ -127,7 +153,19 @@ public class BmMap {
 	public LowresModelManager getLowresModelManager() {
 		return lowresModelManager;
 	}
-	
+
+	public Predicate<Vector2i> getTileFilter() {
+		return tileFilter;
+	}
+
+	public void setTileFilter(Predicate<Vector2i> tileFilter) {
+		this.tileFilter = tileFilter;
+	}
+
+	public long getAverageNanosPerTile() {
+		return renderTimeSumNanos / tilesRendered;
+	}
+
 	@Override
 	public int hashCode() {
 		return id.hashCode();

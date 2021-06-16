@@ -22,46 +22,48 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package de.bluecolored.bluemap.common.plugin;
+package de.bluecolored.bluemap.fabric;
 
-import de.bluecolored.bluemap.core.map.BmMap;
-import org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import org.apache.logging.log4j.Logger;
 
-import java.util.HashMap;
-import java.util.Map;
+import de.bluecolored.bluemap.core.logger.AbstractLogger;
 
-@SuppressWarnings("FieldMayBeFinal")
-@ConfigSerializable
-public class PluginStatus {
+public class Log4jLogger extends AbstractLogger {
 
-	private boolean renderThreadsEnabled = true;
-	private Map<String, MapStatus> maps = new HashMap<>();
-
-	public boolean isRenderThreadsEnabled() {
-		return renderThreadsEnabled;
+	private Logger out;
+	
+	public Log4jLogger(Logger out) {
+		this.out = out;
 	}
 
-	public void setRenderThreadsEnabled(boolean renderThreadsEnabled) {
-		this.renderThreadsEnabled = renderThreadsEnabled;
+	@Override
+	public void logError(String message, Throwable throwable) {
+		out.error(message, throwable);
 	}
 
-	public MapStatus getMapStatus(BmMap map) {
-		return maps.computeIfAbsent(map.getId(), k -> new MapStatus());
+	@Override
+	public void logWarning(String message) {
+		out.warn(message);
 	}
 
-	@ConfigSerializable
-	public static class MapStatus {
-
-		private boolean updateEnabled = true;
-
-		public boolean isUpdateEnabled() {
-			return updateEnabled;
-		}
-
-		public void setUpdateEnabled(boolean update) {
-			this.updateEnabled = update;
-		}
-
+	@Override
+	public void logInfo(String message) {
+		out.info(message);
 	}
 
+	@Override
+	public void logDebug(String message) {
+		if (out.isDebugEnabled()) out.debug(message);
+	}
+	
+	@Override
+	public void noFloodDebug(String message) {
+		if (out.isDebugEnabled()) super.noFloodDebug(message);
+	}
+	
+	@Override
+	public void noFloodDebug(String key, String message) {
+		if (out.isDebugEnabled()) super.noFloodDebug(key, message);
+	}
+	
 }

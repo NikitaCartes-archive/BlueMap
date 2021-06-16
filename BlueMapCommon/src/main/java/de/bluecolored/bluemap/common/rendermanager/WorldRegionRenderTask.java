@@ -25,13 +25,13 @@
 package de.bluecolored.bluemap.common.rendermanager;
 
 import com.flowpowered.math.vector.Vector2i;
+import com.flowpowered.math.vector.Vector2l;
 import de.bluecolored.bluemap.core.map.BmMap;
 import de.bluecolored.bluemap.core.world.Grid;
 import de.bluecolored.bluemap.core.world.Region;
-import de.bluecolored.bluemap.core.world.World;
 
-import java.util.Collection;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class WorldRegionRenderTask implements RenderTask {
 
@@ -39,7 +39,7 @@ public class WorldRegionRenderTask implements RenderTask {
 	private final Vector2i worldRegion;
 	private final boolean force;
 
-	private TreeSet<Vector2i> tiles;
+	private Deque<Vector2i> tiles;
 	private int tileCount;
 	private long startTime;
 
@@ -64,7 +64,7 @@ public class WorldRegionRenderTask implements RenderTask {
 	}
 
 	private synchronized void init() {
-		tiles = new TreeSet<>(WorldRegionRenderTask::tileComparator);
+		Set<Vector2l> tileSet = new HashSet<>();
 		startTime = System.currentTimeMillis();
 
 		//Logger.global.logInfo("Starting: " + worldRegion);
@@ -84,12 +84,16 @@ public class WorldRegionRenderTask implements RenderTask {
 
 			for (int x = tileMin.getX(); x <= tileMax.getX(); x++) {
 				for (int z = tileMin.getY(); z <= tileMax.getY(); z++) {
-					tiles.add(new Vector2i(x, z));
+					tileSet.add(new Vector2l(x, z));
 				}
 			}
 		}
 
-		this.tileCount = tiles.size();
+		this.tileCount = tileSet.size();
+		this.tiles = tileSet.stream()
+				.sorted(WorldRegionRenderTask::compareVec2L) //sort with longs to avoid overflow (comparison uses distanceSquared)
+				.map(Vector2l::toInt) // back to ints
+				.collect(Collectors.toCollection(ArrayDeque::new));
 
 		if (tiles.isEmpty()) complete();
 	}
@@ -180,37 +184,20 @@ public class WorldRegionRenderTask implements RenderTask {
 		return worldRegion.hashCode();
 	}
 
-	private static int tileComparator(Vector2i v1, Vector2i v2) {
-		int comp = v1.compareTo(v2);
-		if (comp != 0) return comp;
-		if (v1.getX() != v2.getX()) return v2.getX() - v1.getX();
-		return v2.getY() - v1.getY();
+	public static Comparator<WorldRegionRenderTask> defaultComparator(final Vector2i centerRegion) {
+		return (task1, task2) -> {
+			// use long to compare to avoid overflow (comparison uses distanceSquared)
+			Vector2l task1Rel = new Vector2l(task1.worldRegion.getX() - centerRegion.getX(), task1.worldRegion.getY() - centerRegion.getY());
+			Vector2l task2Rel = new Vector2l(task2.worldRegion.getX() - centerRegion.getX(), task2.worldRegion.getY() - centerRegion.getY());
+			return compareVec2L(task1Rel, task2Rel);
+		};
 	}
 
-	public static int compare(WorldRegionRenderTask task1, WorldRegionRenderTask task2) {
-		if (task1.equals(task2)) return 0;
-
-		int comp = task1.map.getId().compareTo(task2.map.getId());
-		if (comp != 0) return comp;
-
-		if (task1.map == task2.map) { //should always be true
-			//sort based on the worlds spawn-point
-			World world = task1.map.getWorld();
-			Vector2i spawnPoint = world.getSpawnPoint().toVector2(true);
-			Grid regionGrid = world.getRegionGrid();
-
-			Vector2i spawnRegion = regionGrid.getCell(spawnPoint);
-
-			Vector2i task1Rel = task1.worldRegion.sub(spawnRegion);
-			Vector2i task2Rel = task2.worldRegion.sub(spawnRegion);
-
-			comp = tileComparator(task1Rel, task2Rel);
-		} else {
-			comp = tileComparator(task1.worldRegion, task2.worldRegion);
-		}
-		if (comp != 0) return comp;
-
-		return -Boolean.compare(task1.force, task2.force);
+	/**
+	 * Comparison method that doesn't overflow that easily
+	 */
+	private static int compareVec2L(Vector2l v1, Vector2l v2) {
+		return Long.signum(v1.lengthSquared() - v2.lengthSquared());
 	}
 
 }

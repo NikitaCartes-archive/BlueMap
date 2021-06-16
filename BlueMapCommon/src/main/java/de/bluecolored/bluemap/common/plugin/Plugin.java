@@ -74,7 +74,7 @@ public class Plugin {
 	private WebServerConfig webServerConfig;
 	private PluginConfig pluginConfig;
 
-	private PluginStatus pluginStatus;
+	private PluginState pluginState;
 
 	private Map<UUID, World> worlds;
 	private Map<String, BmMap> maps;
@@ -83,8 +83,6 @@ public class Plugin {
 	private WebServer webServer;
 
 	private Timer daemonTimer;
-	private TimerTask saveTask;
-	private TimerTask metricsTask;
 
 	private Map<String, RegionFileWatchService> regionFileWatchServices;
 
@@ -122,15 +120,15 @@ public class Plugin {
 						true
 				));
 
-				//load plugin status
+				//load plugin state
 				try {
 					GsonConfigurationLoader loader = GsonConfigurationLoader.builder()
-							.file(new File(getCoreConfig().getDataFolder(), "pluginStatus.json"))
+							.file(new File(getCoreConfig().getDataFolder(), "pluginState.json"))
 							.build();
-					pluginStatus = loader.load().get(PluginStatus.class);
+					pluginState = loader.load().get(PluginState.class);
 				} catch (SerializationException ex) {
-					Logger.global.logWarning("Failed to load pluginStatus.json (invalid format), creating a new one...");
-					pluginStatus = new PluginStatus();
+					Logger.global.logWarning("Failed to load pluginState.json (invalid format), creating a new one...");
+					pluginState = new PluginState();
 				}
 
 				//create and start webserver
@@ -183,13 +181,13 @@ public class Plugin {
 
 				//update all maps
 				for (BmMap map : maps.values()) {
-					if (pluginStatus.getMapStatus(map).isUpdateEnabled()) {
+					if (pluginState.getMapState(map).isUpdateEnabled()) {
 						renderManager.scheduleRenderTask(new MapUpdateTask(map));
 					}
 				}
 
 				//start render-manager
-				if (pluginStatus.isRenderThreadsEnabled()) {
+				if (pluginState.isRenderThreadsEnabled()) {
 					renderManager.start(coreConfig.getRenderThreadCount());
 				} else {
 					Logger.global.logInfo("Render-Threads are STOPPED! Use the command 'bluemap start' to start them.");
@@ -212,7 +210,7 @@ public class Plugin {
 				daemonTimer = new Timer("BlueMap-Plugin-Daemon-Timer", true);
 
 				//periodically save
-				saveTask = new TimerTask() {
+				TimerTask saveTask = new TimerTask() {
 					@Override
 					public void run() {
 						save();
@@ -220,8 +218,35 @@ public class Plugin {
 				};
 				daemonTimer.schedule(saveTask, TimeUnit.MINUTES.toMillis(2), TimeUnit.MINUTES.toMillis(2));
 
+				//periodically restart the file-watchers
+				TimerTask fileWatcherRestartTask = new TimerTask() {
+					@Override
+					public void run() {
+						regionFileWatchServices.values().forEach(RegionFileWatchService::close);
+						regionFileWatchServices.clear();
+						initFileWatcherTasks();
+					}
+				};
+				daemonTimer.schedule(fileWatcherRestartTask, TimeUnit.HOURS.toMillis(1), TimeUnit.HOURS.toMillis(1));
+
+				//periodically update all (non frozen) maps
+				if (pluginConfig.getFullUpdateIntervalMinutes() > 0) {
+					long fullUpdateTime = TimeUnit.MINUTES.toMillis(pluginConfig.getFullUpdateIntervalMinutes());
+					TimerTask updateAllMapsTask = new TimerTask() {
+						@Override
+						public void run() {
+							for (BmMap map : maps.values()) {
+								if (pluginState.getMapState(map).isUpdateEnabled()) {
+									renderManager.scheduleRenderTask(new MapUpdateTask(map));
+								}
+							}
+						}
+					};
+					daemonTimer.scheduleAtFixedRate(updateAllMapsTask, fullUpdateTime, fullUpdateTime);
+				}
+
 				//metrics
-				metricsTask = new TimerTask() {
+				TimerTask metricsTask = new TimerTask() {
 					@Override
 					public void run() {
 						if (Plugin.this.serverInterface.isMetricsEnabled(coreConfig.isMetricsEnabled()))
@@ -232,11 +257,7 @@ public class Plugin {
 
 				//watch map-changes
 				this.regionFileWatchServices = new HashMap<>();
-				for (BmMap map : maps.values()) {
-					if (pluginStatus.getMapStatus(map).isUpdateEnabled()) {
-						startWatchingMap(map);
-					}
-				}
+				initFileWatcherTasks();
 
 				//enable api
 				this.api = new BlueMapAPIImpl(this);
@@ -269,18 +290,12 @@ public class Plugin {
 				skinUpdater = null;
 		
 				//stop scheduled threads
-				if (metricsTask != null) metricsTask.cancel();
-				metricsTask = null;
-				if (saveTask != null) saveTask.cancel();
-				saveTask = null;
 				if (daemonTimer != null) daemonTimer.cancel();
 				daemonTimer = null;
 
 				//stop file-watchers
 				if (regionFileWatchServices != null) {
-					for (RegionFileWatchService watcher : regionFileWatchServices.values()) {
-						watcher.close();
-					}
+					regionFileWatchServices.values().forEach(RegionFileWatchService::close);
 					regionFileWatchServices.clear();
 				}
 				regionFileWatchServices = null;
@@ -302,7 +317,7 @@ public class Plugin {
 				webServerConfig = null;
 				pluginConfig = null;
 
-				pluginStatus = null;
+				pluginState = null;
 
 				//done
 				loaded = false;
@@ -318,14 +333,14 @@ public class Plugin {
 	}
 
 	public synchronized void save() {
-		if (pluginStatus != null) {
+		if (pluginState != null) {
 			try {
 				GsonConfigurationLoader loader = GsonConfigurationLoader.builder()
-						.file(new File(getCoreConfig().getDataFolder(), "pluginStatus.json"))
+						.file(new File(getCoreConfig().getDataFolder(), "pluginState.json"))
 						.build();
-				loader.save(loader.createNode().set(PluginStatus.class, pluginStatus));
+				loader.save(loader.createNode().set(PluginState.class, pluginState));
 			} catch (IOException ex) {
-				Logger.global.logError("Failed to save pluginStatus.json!", ex);
+				Logger.global.logError("Failed to save pluginState.json!", ex);
 			}
 		}
 
@@ -379,8 +394,8 @@ public class Plugin {
 		return pluginConfig;
 	}
 
-	public PluginStatus getPluginStatus() {
-		return pluginStatus;
+	public PluginState getPluginState() {
+		return pluginState;
 	}
 	
 	public World getWorld(UUID uuid){
@@ -414,5 +429,13 @@ public class Plugin {
 	public MinecraftVersion getMinecraftVersion() {
 		return minecraftVersion;
 	}
-	
+
+	private void initFileWatcherTasks() {
+		for (BmMap map : maps.values()) {
+			if (pluginState.getMapState(map).isUpdateEnabled()) {
+				startWatchingMap(map);
+			}
+		}
+	}
+
 }

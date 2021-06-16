@@ -36,12 +36,12 @@ import de.bluecolored.bluemap.core.MinecraftVersion;
 import de.bluecolored.bluemap.core.logger.Logger;
 import de.bluecolored.bluemap.core.resourcepack.ParseResourceException;
 import de.bluecolored.bluemap.sponge8.SpongeCommands.SpongeCommandProxy;
+import net.kyori.adventure.text.serializer.plain.PlainComponentSerializer;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.NBTUtil;
 import org.spongepowered.api.Platform;
 import org.spongepowered.api.Server;
 import org.spongepowered.api.Sponge;
-import org.spongepowered.api.adventure.SpongeComponents;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.event.Listener;
@@ -93,14 +93,14 @@ public class SpongePlugin implements ServerInterface {
 		this.onlinePlayerList = Collections.synchronizedList(new ArrayList<>());
 
 		final String versionFromSponge = Sponge.platform().container(Platform.Component.GAME).metadata().version();
-		MinecraftVersion version = MinecraftVersion.MC_1_16;
+		MinecraftVersion version = new MinecraftVersion(1, 16);
 		try {
-			version = MinecraftVersion.fromVersionString(versionFromSponge);
+			version = MinecraftVersion.of(versionFromSponge);
 		} catch (IllegalArgumentException e) {
 			Logger.global.logWarning("Failed to find a matching version for version-name '" + versionFromSponge + "'! Using latest known sponge-version: " + version.getVersionString());
 		}
 		
-		this.pluginInstance = new Plugin(version, "sponge", this);
+		this.pluginInstance = new Plugin(version, "sponge-8.0.0", this);
 		this.commands = new SpongeCommands(pluginInstance);
 
 		//bstats
@@ -210,7 +210,7 @@ public class SpongePlugin implements ServerInterface {
 						serverWorld -> serverWorld
 								.properties()
 								.displayName()
-								.map(SpongeComponents.plainSerializer()::serialize)
+								.map(PlainComponentSerializer.plain()::serialize)
 				)
 				.orElse(null);
 	}
