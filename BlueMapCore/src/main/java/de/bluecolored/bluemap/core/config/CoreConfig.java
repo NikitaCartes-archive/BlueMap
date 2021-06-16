@@ -24,7 +24,7 @@
  */
 package de.bluecolored.bluemap.core.config;
 
-import ninja.leaping.configurate.ConfigurationNode;
+import org.spongepowered.configurate.ConfigurationNode;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,19 +40,19 @@ public class CoreConfig {
 	public CoreConfig(ConfigurationNode node) throws IOException {
 		
 		//accept-download
-		downloadAccepted = node.getNode("accept-download").getBoolean(false);
+		downloadAccepted = node.node("accept-download").getBoolean(false);
 
 		//renderThreadCount
 		int processors = Runtime.getRuntime().availableProcessors();
-		renderThreadCount = node.getNode("renderThreadCount").getInt(0);
+		renderThreadCount = node.node("renderThreadCount").getInt(0);
 		if (renderThreadCount <= 0) renderThreadCount = processors + renderThreadCount;
 		if (renderThreadCount <= 0) renderThreadCount = 1;
 		
 		//metrics
-		metricsEnabled = node.getNode("metrics").getBoolean(false);
+		metricsEnabled = node.node("metrics").getBoolean(false);
 		
 		//data
-		dataFolder = ConfigManager.toFolder(node.getNode("data").getString("data"));
+		dataFolder = ConfigManager.toFolder(node.node("data").getString("data"));
 
 	}
 	
