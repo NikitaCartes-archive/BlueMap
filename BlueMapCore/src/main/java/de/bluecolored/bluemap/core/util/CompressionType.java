@@ -24,9 +24,9 @@
  */
 package de.bluecolored.bluemap.core.util;
 
-import com.nixxcode.jvmbrotli.dec.BrotliInputStream;
-import com.nixxcode.jvmbrotli.enc.BrotliOutputStream;
-import com.nixxcode.jvmbrotli.enc.Encoder;
+import com.aayushatharva.brotli4j.decoder.BrotliInputStream;
+import com.aayushatharva.brotli4j.encoder.BrotliOutputStream;
+import com.aayushatharva.brotli4j.encoder.Encoder;
 
 import java.io.IOException;
 import java.io.InputStream;
