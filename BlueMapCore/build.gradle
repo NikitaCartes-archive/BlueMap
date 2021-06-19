@@ -7,10 +7,11 @@ dependencies {
     api 'org.spongepowered:configurate-hocon:4.1.1'
     api 'org.spongepowered:configurate-gson:4.1.1'
     api 'com.github.Querz:NBT:4.0'
-    api group: 'com.nixxcode.jvmbrotli', name: 'jvmbrotli', version: '0.2.0'
-    api group: 'com.nixxcode.jvmbrotli', name: 'jvmbrotli-linux-x86-amd64', version: '0.2.0'
-    api group: 'com.nixxcode.jvmbrotli', name: 'jvmbrotli-darwin-x86-amd64', version: '0.2.0'
-    api group: 'com.nixxcode.jvmbrotli', name: 'jvmbrotli-win32-x86-amd64', version: '0.2.0'
+    api group: 'com.aayushatharva.brotli4j', name: 'brotli4j', version: '1.4.2'
+    api group: 'com.aayushatharva.brotli4j', name: 'native-windows-x86_64', version: '1.4.2'
+    api group: 'com.aayushatharva.brotli4j', name: 'native-linux-aarch64', version: '1.4.2'
+    api group: 'com.aayushatharva.brotli4j', name: 'native-osx-x86_64', version: '1.4.2'
+    api group: 'com.aayushatharva.brotli4j', name: 'native-linux-x86_64', version: '1.4.2'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'
 }

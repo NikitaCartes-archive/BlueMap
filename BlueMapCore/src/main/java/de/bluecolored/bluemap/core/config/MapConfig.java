@@ -26,8 +26,8 @@ package de.bluecolored.bluemap.core.config;
 
 import com.flowpowered.math.vector.Vector2i;
 import com.flowpowered.math.vector.Vector3i;
+import com.aayushatharva.brotli4j.Brotli4jLoader;
 import de.bluecolored.bluemap.core.debug.DebugDump;
-import com.nixxcode.jvmbrotli.common.BrotliLoader;
 import de.bluecolored.bluemap.core.logger.Logger;
 import de.bluecolored.bluemap.core.map.MapSettings;
 import de.bluecolored.bluemap.core.util.ConfigUtils;
@@ -140,7 +140,7 @@ public class MapConfig implements MapSettings {
 		int compressionLevel = node.node("compressionLevel").getInt(-1);
 
 		//check brotli availabillity
-		if (compressionType == CompressionType.BROTLI && !BrotliLoader.isBrotliAvailable()){
+		if (compressionType == CompressionType.BROTLI && !Brotli4jLoader.isAvailable()){
 			Logger.global.logWarning("Library for brotli-compression is unavailable! Falling back to gzip for map '" + this.id + "'!");
 			compressionType = CompressionType.GZIP;
 			compressionLevel = -1; //also use default compression-level if we have to fall-back to gzip
