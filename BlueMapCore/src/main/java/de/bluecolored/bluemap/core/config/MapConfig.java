@@ -59,7 +59,8 @@ public class MapConfig implements MapSettings {
 	private Compression compression;
 
 	private boolean ignoreMissingLightData;
-	
+	private boolean persistent;
+
 	private int hiresTileSize;
 	
 	private int lowresPointsPerHiresTile;
@@ -78,7 +79,7 @@ public class MapConfig implements MapSettings {
 		//world
 		this.world = node.node("world").getString("");
 		if (world.isEmpty()) throw new IOException("Invalid configuration: Node maps[?].world is not defined");
-		
+
 		//startPos
 		if (!node.node("startPos").virtual()) this.startPos = ConfigUtils.readVector2i(node.node("startPos"));
 		
@@ -110,7 +111,10 @@ public class MapConfig implements MapSettings {
 
 		//ignoreMissingLightData
 		this.ignoreMissingLightData = node.node("ignoreMissingLightData").getBoolean(false);
-		
+
+		//persistent
+		this.persistent = node.node("persistent").getBoolean(false);
+
 		//tile-settings
 		this.hiresTileSize = node.node("hires", "tileSize").getInt(32);
 		this.lowresPointsPerHiresTile = node.node("lowres", "pointsPerHiresTile").getInt(4);
@@ -179,6 +183,10 @@ public class MapConfig implements MapSettings {
 	
 	public boolean isIgnoreMissingLightData() {
 		return ignoreMissingLightData;
+	}
+
+	public boolean isPersistent() {
+		return persistent;
 	}
 
 	@Override

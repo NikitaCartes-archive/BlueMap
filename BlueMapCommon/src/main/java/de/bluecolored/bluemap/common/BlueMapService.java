@@ -113,7 +113,8 @@ public class BlueMapService {
 		}
 		int ordinal = 0;
 		for (MapConfig map : getRenderConfig().getMapConfigs()) {
-			if (!getMaps().containsKey(map.getId())) continue; //don't add not loaded maps
+			if (!getMaps().containsKey(map.getId()) && !map.isPersistent()) continue; //don't add not loaded maps if map not persistent
+			webSettings.setMapEnabled(true, map.getId());
 			webSettings.setOrdinal(ordinal++, map.getId());
 			webSettings.setFrom(map);
 		}
