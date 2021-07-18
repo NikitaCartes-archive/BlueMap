@@ -26,7 +26,7 @@ package de.bluecolored.bluemap.core.logger;
 
 public abstract class Logger {
 	
-	public static Logger global = stdOut(); 
+	public static Logger global = stdOut();
 	
 	public abstract void logError(String message, Throwable throwable);
 

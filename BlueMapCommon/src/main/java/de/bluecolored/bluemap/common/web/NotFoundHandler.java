@@ -22,11 +22,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package de.bluecolored.bluemap.core.webserver;
+package de.bluecolored.bluemap.common.web;
 
-@FunctionalInterface
-public interface HttpRequestHandler {
+import io.undertow.server.HttpServerExchange;
+import io.undertow.server.handlers.PathHandler;
+import io.undertow.util.Headers;
 
-	HttpResponse handle(HttpRequest request);
-	
+public class NotFoundHandler extends PathHandler {
+
+    public NotFoundHandler() {
+        super(NotFoundHandler::handleNotFound);
+
+        this.addPrefixPath("/data", NotFoundHandler::handleEmptyData);
+    }
+
+    public static void handleEmptyData(HttpServerExchange exchange) {
+        exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "application/json");
+        exchange.getResponseSender().send("{}");
+        exchange.endExchange();
+    }
+
+    public static void handleNotFound(HttpServerExchange exchange) {
+        String server = exchange.getResponseHeaders().getFirst(Headers.SERVER);
+
+        exchange.setStatusCode(404);
+        exchange.getResponseSender().send(
+                "404 - NotFound\n" +
+                server + "\n" +
+                "\nPath: '" + exchange.getRequestPath() + "'"
+        );
+        exchange.endExchange();
+    }
+
 }

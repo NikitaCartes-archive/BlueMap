@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     api 'com.mojang:brigadier:1.0.17'
+    api 'io.undertow:undertow-core:2.1.0.Final'
 
     api project(':BlueMapCore')
     api project(':BlueMapAPI')

@@ -28,13 +28,13 @@ import de.bluecolored.bluemap.common.BlueMapService;
 import de.bluecolored.bluemap.common.InterruptableReentrantLock;
 import de.bluecolored.bluemap.common.MissingResourcesException;
 import de.bluecolored.bluemap.common.api.BlueMapAPIImpl;
-import de.bluecolored.bluemap.common.live.LiveAPIRequestHandler;
+import de.bluecolored.bluemap.common.live.LiveAPIHandler;
 import de.bluecolored.bluemap.common.plugin.serverinterface.ServerInterface;
 import de.bluecolored.bluemap.common.plugin.skins.PlayerSkinUpdater;
 import de.bluecolored.bluemap.common.rendermanager.MapUpdateTask;
 import de.bluecolored.bluemap.common.rendermanager.RenderManager;
-import de.bluecolored.bluemap.common.web.FileRequestHandler;
-import de.bluecolored.bluemap.core.BlueMap;
+import de.bluecolored.bluemap.common.web.NotFoundHandler;
+import de.bluecolored.bluemap.common.web.StaticFileHandler;
 import de.bluecolored.bluemap.core.MinecraftVersion;
 import de.bluecolored.bluemap.core.config.CoreConfig;
 import de.bluecolored.bluemap.core.config.RenderConfig;
@@ -46,9 +46,11 @@ import de.bluecolored.bluemap.core.map.BmMap;
 import de.bluecolored.bluemap.core.metrics.Metrics;
 import de.bluecolored.bluemap.core.resourcepack.ParseResourceException;
 import de.bluecolored.bluemap.core.util.FileUtils;
-import de.bluecolored.bluemap.core.webserver.HttpRequestHandler;
-import de.bluecolored.bluemap.core.webserver.WebServer;
 import de.bluecolored.bluemap.core.world.World;
+import io.undertow.Undertow;
+import io.undertow.UndertowLogger;
+import io.undertow.UndertowOptions;
+import io.undertow.server.HttpHandler;
 import org.spongepowered.configurate.gson.GsonConfigurationLoader;
 import org.spongepowered.configurate.serialize.SerializationException;
 
@@ -83,7 +85,7 @@ public class Plugin {
 	private Map<String, BmMap> maps;
 
 	private RenderManager renderManager;
-	private WebServer webServer;
+	private Undertow webServer;
 
 	private Timer daemonTimer;
 
@@ -139,20 +141,23 @@ public class Plugin {
 				//create and start webserver
 				if (webServerConfig.isWebserverEnabled()) {
 					FileUtils.mkDirs(webServerConfig.getWebRoot());
-					HttpRequestHandler requestHandler = new FileRequestHandler(webServerConfig.getWebRoot().toPath(), "BlueMap v" + BlueMap.VERSION);
-					
-					//inject live api if enabled
+
+					HttpHandler notFoundHandler = new NotFoundHandler();
+					HttpHandler rootHandler = new StaticFileHandler(webServerConfig.getWebRoot().toPath(), notFoundHandler);
+
 					if (pluginConfig.isLiveUpdatesEnabled()) {
-						requestHandler = new LiveAPIRequestHandler(serverInterface, pluginConfig, requestHandler);
+						rootHandler = new LiveAPIHandler(serverInterface, pluginConfig, rootHandler);
 					}
-					
-					webServer = new WebServer(
-							webServerConfig.getWebserverBindAddress(),
-							webServerConfig.getWebserverPort(),
-							webServerConfig.getWebserverMaxConnections(),
-							requestHandler,
-							false
-					);
+
+					webServer = Undertow.builder()
+							.setServerOption(UndertowOptions.ENABLE_HTTP2, true)
+							.addHttpListener(
+									webServerConfig.getWebserverPort(),
+									webServerConfig.getWebserverBindAddress().getHostAddress()
+							)
+							.setHandler(rootHandler)
+							.build();
+
 					webServer.start();
 				}
 		
@@ -309,7 +314,7 @@ public class Plugin {
 				if (renderManager != null) renderManager.stop();
 				renderManager = null;
 
-				if (webServer != null) webServer.close();
+				if (webServer != null) webServer.stop();
 				webServer = null;
 
 				//clear resources and configs
@@ -419,7 +424,7 @@ public class Plugin {
 		return renderManager;
 	}
 
-	public WebServer getWebServer() {
+	public Undertow getWebServer() {
 		return webServer;
 	}
 	

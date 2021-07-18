@@ -40,6 +40,10 @@ build.dependsOn shadowJar {
 	relocate 'org.checkerframework', 'de.bluecolored.shadow.checkerframework'
 	relocate 'org.codehaus', 'de.bluecolored.shadow.codehaus'
 	relocate 'io.leangen.geantyref', 'de.bluecolored.shadow.geantyref'
+	relocate 'io.undertow', 'de.bluecolored.shadow.undertow'
+	relocate 'org.jboss', 'de.bluecolored.shadow.jboss'
+	relocate 'org.wildfly', 'de.bluecolored.shadow.wildfly'
+	//relocate 'org.xnio', 'de.bluecolored.shadow.xnio' // doesn't like being relocated
 }
 
 processResources {

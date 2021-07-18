@@ -39,6 +39,8 @@ import de.bluecolored.bluemap.core.resourcepack.ParseResourceException;
 import de.bluecolored.bluemap.core.resourcepack.ResourcePack;
 import de.bluecolored.bluemap.core.world.SlicedWorld;
 import de.bluecolored.bluemap.core.world.World;
+import io.undertow.Undertow;
+import io.undertow.UndertowLogger;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;

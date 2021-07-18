@@ -24,88 +24,68 @@
  */
 package de.bluecolored.bluemap.common.live;
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.gson.stream.JsonWriter;
-
 import de.bluecolored.bluemap.common.plugin.PluginConfig;
 import de.bluecolored.bluemap.common.plugin.serverinterface.Player;
 import de.bluecolored.bluemap.common.plugin.serverinterface.ServerInterface;
 import de.bluecolored.bluemap.core.BlueMap;
-import de.bluecolored.bluemap.core.webserver.HttpRequest;
-import de.bluecolored.bluemap.core.webserver.HttpRequestHandler;
-import de.bluecolored.bluemap.core.webserver.HttpResponse;
-import de.bluecolored.bluemap.core.webserver.HttpStatusCode;
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
+import io.undertow.server.handlers.PathHandler;
+import io.undertow.util.Headers;
+import io.undertow.util.Methods;
 
-public class LiveAPIRequestHandler implements HttpRequestHandler {
+import java.io.StringWriter;
 
-	private HttpRequestHandler notFoundHandler;
-	private Map<String, HttpRequestHandler> liveAPIRequests;
-	private ServerInterface server;
+public class LiveAPIHandler extends PathHandler {
+
+	private final ServerInterface server;
+	private final PluginConfig config;
 	
-	private PluginConfig config;
-	
-	public LiveAPIRequestHandler(ServerInterface server, PluginConfig config, HttpRequestHandler notFoundHandler) {
+	public LiveAPIHandler(ServerInterface server, PluginConfig config, HttpHandler next) {
+		super(next);
+
 		this.server = server;
-		this.notFoundHandler = notFoundHandler;
-		
-		this.liveAPIRequests = new HashMap<>();
-
-		this.liveAPIRequests.put("live", this::handleLivePingRequest);
-		this.liveAPIRequests.put("live/players", this::handlePlayersRequest);
-		
 		this.config = config;
+
+		this.addPrefixPath("/live", this::handleLivePingRequest);
+		this.addExactPath("/live/players", this::handlePlayersRequest);
 	}
 
-	@Override
-	public HttpResponse handle(HttpRequest request) {
-		if (!config.isLiveUpdatesEnabled()) return this.notFoundHandler.handle(request);
-		
-		String path = request.getPath();
-		
-		//normalize path
-		if (path.startsWith("/")) path = path.substring(1);
-		if (path.endsWith("/")) path = path.substring(0, path.length() - 1);
-		
-		HttpRequestHandler handler = liveAPIRequests.get(path);
-		if (handler != null) {
-			HttpResponse response = handler.handle(request);
-			response.addHeader("Server", "BlueMap v" + BlueMap.VERSION);
-			response.addHeader("Cache-Control", "no-cache");
-			response.addHeader("Content-Type", "application/json");
-			
-			return response;
+	public void handleLivePingRequest(HttpServerExchange exchange) {
+		exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "application/json");
+		exchange.getResponseHeaders().add(Headers.CACHE_CONTROL, "no-cache");
+
+		exchange.getResponseSender().send("{\"status\":\"OK\"}");
+		exchange.endExchange();
+	}
+
+	public void handlePlayersRequest(HttpServerExchange exchange) throws Exception {
+		if (!exchange.getRequestMethod().equals(Methods.GET)) {
+			String server = exchange.getResponseHeaders().getFirst(Headers.SERVER);
+
+			exchange.setStatusCode(400);
+			exchange.getResponseSender().send(
+					"400 - Bad Request\n" +
+					server
+			);
+			exchange.endExchange();
+			return;
 		}
-		
-		return this.notFoundHandler.handle(request);
-	}
 
-	public HttpResponse handleLivePingRequest(HttpRequest request) {
-		HttpResponse response = new HttpResponse(HttpStatusCode.OK);
-		response.setData("{\"status\":\"OK\"}");
-		return response;
-	}
-	
-	public HttpResponse handlePlayersRequest(HttpRequest request) {
-		if (!request.getMethod().equalsIgnoreCase("GET")) return new HttpResponse(HttpStatusCode.BAD_REQUEST);
-		
 		try (
-			StringWriter data = new StringWriter();
-			JsonWriter json = new JsonWriter(data);
-		){
-			
+				StringWriter data = new StringWriter();
+				JsonWriter json = new JsonWriter(data);
+		) {
 			json.beginObject();
 			json.name("players").beginArray();
 			for (Player player : server.getOnlinePlayers()) {
 				if (!player.isOnline()) continue;
-				
+
 				if (config.isHideInvisible() && player.isInvisible()) continue;
 				if (config.isHideSneaking() && player.isSneaking()) continue;
 				if (config.getHiddenGameModes().contains(player.getGamemode().getId())) continue;
-				
+
 				json.beginObject();
 				json.name("uuid").value(player.getUuid().toString());
 				json.name("name").value(player.getName().toPlainString());
@@ -117,17 +97,14 @@ public class LiveAPIRequestHandler implements HttpRequestHandler {
 				json.endObject();
 				json.endObject();
 			}
-			
+
 			json.endArray();
 			json.endObject();
-		
-			HttpResponse response = new HttpResponse(HttpStatusCode.OK);
-			response.setData(data.toString());
-			
-			return response;
 
-		} catch (IOException ex) {
-			return new HttpResponse(HttpStatusCode.INTERNAL_SERVER_ERROR);
+			exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "application/json");
+			exchange.getResponseHeaders().add(Headers.CACHE_CONTROL, "no-cache");
+
+			exchange.getResponseSender().send(data.toString());
 		}
 	}
 	

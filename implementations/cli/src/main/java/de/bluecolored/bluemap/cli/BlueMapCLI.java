@@ -30,8 +30,8 @@ import de.bluecolored.bluemap.common.plugin.RegionFileWatchService;
 import de.bluecolored.bluemap.common.rendermanager.MapUpdateTask;
 import de.bluecolored.bluemap.common.rendermanager.RenderManager;
 import de.bluecolored.bluemap.common.rendermanager.RenderTask;
-import de.bluecolored.bluemap.common.web.FileRequestHandler;
-import de.bluecolored.bluemap.core.BlueMap;
+import de.bluecolored.bluemap.common.web.NotFoundHandler;
+import de.bluecolored.bluemap.common.web.StaticFileHandler;
 import de.bluecolored.bluemap.core.MinecraftVersion;
 import de.bluecolored.bluemap.core.config.WebServerConfig;
 import de.bluecolored.bluemap.core.logger.Logger;
@@ -39,8 +39,10 @@ import de.bluecolored.bluemap.core.logger.LoggerLogger;
 import de.bluecolored.bluemap.core.map.BmMap;
 import de.bluecolored.bluemap.core.metrics.Metrics;
 import de.bluecolored.bluemap.core.util.FileUtils;
-import de.bluecolored.bluemap.core.webserver.HttpRequestHandler;
-import de.bluecolored.bluemap.core.webserver.WebServer;
+import io.undertow.Undertow;
+import io.undertow.UndertowLogger;
+import io.undertow.UndertowOptions;
+import io.undertow.server.HttpHandler;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
@@ -170,15 +172,19 @@ public class BlueMapCLI {
 		
 		WebServerConfig config = blueMap.getWebServerConfig();
 		FileUtils.mkDirs(config.getWebRoot());
-		HttpRequestHandler requestHandler = new FileRequestHandler(config.getWebRoot().toPath(), "BlueMap v" + BlueMap.VERSION);
 
-		WebServer webServer = new WebServer(
-				config.getWebserverBindAddress(),
-				config.getWebserverPort(),
-				config.getWebserverMaxConnections(),
-				requestHandler,
-				verbose
-		);
+		HttpHandler notFoundHandler = new NotFoundHandler();
+		HttpHandler rootHandler = new StaticFileHandler(config.getWebRoot().toPath(), notFoundHandler);
+
+		Undertow webServer = Undertow.builder()
+				.setServerOption(UndertowOptions.ENABLE_HTTP2, true)
+				.addHttpListener(
+						config.getWebserverPort(),
+						config.getWebserverBindAddress().getHostAddress()
+				)
+				.setHandler(rootHandler)
+				.build();
+
 		webServer.start();
 	}
 	
