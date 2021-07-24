@@ -40,6 +40,11 @@ public class WebServerConfig {
 
 	private InetAddress bindAddress = null;
 	private int port = 8100;
+	private int httpsPort = 8101;
+
+	private File privateKeyPem;
+	private File certificatePem;
+
 	private int maxConnections = 100;
 
 	public WebServerConfig(ConfigurationNode node) throws IOException {
@@ -65,7 +70,17 @@ public class WebServerConfig {
 			
 			//port
 			port = node.node("port").getInt(8100);
-			
+			httpsPort = node.node("httpsPort").getInt(8101);
+
+			//certs
+			String privateKeyPem = node.node("privateKeyPem").getString();
+			if (privateKeyPem == null) throw new IOException("Invalid configuration: Node privateKeyPem is not defined");
+			this.privateKeyPem = new File(privateKeyPem);
+
+			String certificatePem = node.node("certificatePem").getString();
+			if (certificatePem == null) throw new IOException("Invalid configuration: Node certificatePem is not defined");
+			this.certificatePem = new File(certificatePem);
+
 			//maxConnectionCount
 			maxConnections = node.node("maxConnectionCount").getInt(100);
 		}
@@ -86,6 +101,18 @@ public class WebServerConfig {
 
 	public int getWebserverPort() {
 		return port;
+	}
+
+	public int getWebserverHttpsPort() {
+		return httpsPort;
+	}
+
+	public File getPrivateKeyPem() {
+		return privateKeyPem;
+	}
+
+	public File getCertificatePem() {
+		return certificatePem;
 	}
 
 	public int getWebserverMaxConnections() {

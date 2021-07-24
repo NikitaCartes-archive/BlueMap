@@ -31,6 +31,7 @@ import de.bluecolored.bluemap.common.rendermanager.MapUpdateTask;
 import de.bluecolored.bluemap.common.rendermanager.RenderManager;
 import de.bluecolored.bluemap.common.rendermanager.RenderTask;
 import de.bluecolored.bluemap.common.web.NotFoundHandler;
+import de.bluecolored.bluemap.common.web.PEMImporter;
 import de.bluecolored.bluemap.common.web.StaticFileHandler;
 import de.bluecolored.bluemap.core.MinecraftVersion;
 import de.bluecolored.bluemap.core.config.WebServerConfig;
@@ -176,14 +177,24 @@ public class BlueMapCLI {
 		HttpHandler notFoundHandler = new NotFoundHandler();
 		HttpHandler rootHandler = new StaticFileHandler(config.getWebRoot().toPath(), notFoundHandler);
 
-		Undertow webServer = Undertow.builder()
-				.setServerOption(UndertowOptions.ENABLE_HTTP2, true)
-				.addHttpListener(
-						config.getWebserverPort(),
-						config.getWebserverBindAddress().getHostAddress()
-				)
-				.setHandler(rootHandler)
-				.build();
+		Undertow webServer = null;
+		try {
+			webServer = Undertow.builder()
+					.setServerOption(UndertowOptions.ENABLE_HTTP2, true)
+					.addHttpListener(
+							config.getWebserverPort(),
+							config.getWebserverBindAddress().getHostAddress()
+					)
+					.addHttpsListener(
+							config.getWebserverHttpsPort(),
+							config.getWebserverBindAddress().getHostAddress(),
+							PEMImporter.createSSLContext(config.getPrivateKeyPem(), config.getCertificatePem(), "qwerty")
+					)
+					.setHandler(rootHandler)
+					.build();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		webServer.start();
 	}

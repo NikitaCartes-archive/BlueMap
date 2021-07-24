@@ -52,7 +52,8 @@ allprojects {
 			'**/*.yml',
 			'**/*.zip',
 			'**/*.json',
-			'**/PreCompressedResourceSupplier.java'
+			'**/PreCompressedResourceSupplier.java',
+			'**/PEMImporter.java'
 		])
 	}
 }

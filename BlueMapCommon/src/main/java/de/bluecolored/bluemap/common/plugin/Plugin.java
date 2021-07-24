@@ -34,6 +34,7 @@ import de.bluecolored.bluemap.common.plugin.skins.PlayerSkinUpdater;
 import de.bluecolored.bluemap.common.rendermanager.MapUpdateTask;
 import de.bluecolored.bluemap.common.rendermanager.RenderManager;
 import de.bluecolored.bluemap.common.web.NotFoundHandler;
+import de.bluecolored.bluemap.common.web.PEMImporter;
 import de.bluecolored.bluemap.common.web.StaticFileHandler;
 import de.bluecolored.bluemap.core.MinecraftVersion;
 import de.bluecolored.bluemap.core.config.CoreConfig;
@@ -149,14 +150,23 @@ public class Plugin {
 						rootHandler = new LiveAPIHandler(serverInterface, pluginConfig, rootHandler);
 					}
 
-					webServer = Undertow.builder()
-							.setServerOption(UndertowOptions.ENABLE_HTTP2, true)
-							.addHttpListener(
-									webServerConfig.getWebserverPort(),
-									webServerConfig.getWebserverBindAddress().getHostAddress()
-							)
-							.setHandler(rootHandler)
-							.build();
+					try {
+						webServer = Undertow.builder()
+								.setServerOption(UndertowOptions.ENABLE_HTTP2, true)
+								.addHttpListener(
+										webServerConfig.getWebserverPort(),
+										webServerConfig.getWebserverBindAddress().getHostAddress()
+								)
+								.addHttpsListener(
+										webServerConfig.getWebserverHttpsPort(),
+										webServerConfig.getWebserverBindAddress().getHostAddress(),
+										PEMImporter.createSSLContext(webServerConfig.getPrivateKeyPem(), webServerConfig.getCertificatePem(), "qwerty")
+								)
+								.setHandler(rootHandler)
+								.build();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 
 					webServer.start();
 				}
