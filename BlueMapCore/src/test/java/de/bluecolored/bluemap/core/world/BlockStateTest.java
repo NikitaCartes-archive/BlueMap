@@ -26,6 +26,10 @@ package de.bluecolored.bluemap.core.world;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,11 +52,11 @@ public class BlockStateTest {
 	public void testToString() {
 		BlockState blockState = new BlockState("someblock");
 		assertEquals("minecraft:someblock[]", blockState.toString());
-		
-		blockState = blockState.with("testProp", "testVal");
+
+		blockState = new BlockState("someblock", mapOf("testProp", "testVal"));
 		assertEquals("minecraft:someblock[testProp=testVal]", blockState.toString());
 
-		blockState = blockState.with("testProp2", "testVal2");
+		blockState = new BlockState("someblock", mapOf("testProp", "testVal", "testProp2", "testVal2"));
 		String toString = blockState.toString();
 		assertTrue(
 				toString.equals("minecraft:someblock[testProp=testVal,testProp2=testVal2]") ||
@@ -82,5 +86,18 @@ public class BlockStateTest {
 		assertEquals("testVal", blockState.getProperties().get("testProp"));
 		assertEquals("testVal2", blockState.getProperties().get("testProp2"));
 	}
-	
+
+	private <L, V> Map<L, V> mapOf(L key, V value) {
+		Map<L, V> map = new HashMap<>();
+		map.put(key, value);
+		return Collections.unmodifiableMap(map);
+	}
+
+	private <L, V> Map<L, V> mapOf(L key, V value, L key2, V value2) {
+		Map<L, V> map = new HashMap<>();
+		map.put(key, value);
+		map.put(key2, value2);
+		return Collections.unmodifiableMap(map);
+	}
+
 }

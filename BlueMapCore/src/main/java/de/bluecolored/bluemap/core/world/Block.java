@@ -24,150 +24,166 @@
  */
 package de.bluecolored.bluemap.core.world;
 
-import com.flowpowered.math.vector.Vector3i;
-import de.bluecolored.bluemap.core.util.Direction;
-
-public class Block {
+public class Block<T extends Block<T>> {
 
 	private World world;
+	private int x, y, z;
+
+	private Chunk chunk;
+
 	private BlockState blockState;
 	private LightData lightData;
-	private Biome biome;
-	private BlockProperties properties;
-	private Vector3i pos;
+	private int biomeId;
 	
-	private float sunLight;
-	private float blockLight;
-	
-	public Block(World world, BlockState blockState, LightData lightData, Biome biome, BlockProperties properties, Vector3i pos) {
+	public Block(World world, int x, int y, int z) {
+		set(world, x, y, z);
+	}
+
+	public T set(World world, int x, int y, int z) {
+		if (this.x == x && this.z == z && this.world == world){
+			if (this.y == y) return self();
+		} else {
+			this.chunk = null; //only reset the chunk if x or z have changed
+		}
+
 		this.world = world;
-		this.blockState = blockState;
-		this.lightData = lightData;
-		this.biome = biome;
-		this.properties = properties;
-		this.pos = pos;
-		
-		this.sunLight = -1;
-		this.blockLight = -1;
+		this.x = x;
+		this.y = y;
+		this.z = z;
+
+		reset();
+
+		return self();
 	}
-	
-	public BlockState getBlockState() {
-		return blockState;
+
+	public T set(int x, int y, int z) {
+		if (this.x == x && this.z == z){
+			if (this.y == y) return self();
+		} else {
+			this.chunk = null; //only reset the chunk if x or z have changed
+		}
+
+		this.x = x;
+		this.y = y;
+		this.z = z;
+
+		reset();
+
+		return self();
 	}
-	
+
+	protected void reset() {
+		this.blockState = null;
+		this.lightData = new LightData(-1, -1);
+		this.biomeId = -1;
+	}
+
+	public T add(int dx, int dy, int dz) {
+		return set(x + dx, y + dy, z + dz);
+	}
+
+	public T copy(Block<?> source) {
+		this.world = source.world;
+		this.chunk = source.chunk;
+		this.x = source.x;
+		this.y = source.y;
+		this.z = source.z;
+
+		reset();
+
+		this.blockState = source.blockState;
+		this.lightData = new LightData(source.lightData.getSkyLight(), source.lightData.getBlockLight());
+		this.biomeId = source.biomeId;
+
+		return self();
+	}
+
+	/**
+	 * copy with offset
+	 */
+	public T copy(Block<?> source, int dx, int dy, int dz) {
+		this.world = source.world;
+		this.x = source.x + dx;
+		this.y = source.y + dy;
+		this.z = source.z + dz;
+
+		this.chunk = null;
+
+		reset();
+
+		return self();
+	}
+
 	public World getWorld() {
 		return world;
 	}
-	
-	public Vector3i getPosition() {
-		return pos;
-	}
-	
-	public float getSunLightLevel() {
-		return lightData.getSkyLight();
-	}
-	
-	public float getBlockLightLevel() {
-		return lightData.getBlockLight();
+
+	public int getX() {
+		return x;
 	}
 
-	public boolean isCullingNeighborFaces() {
-		return properties.isCulling();
+	public int getY() {
+		return y;
 	}
 
-	public boolean isFlammable() {
-		return properties.isFlammable();
-	}
-	
-	public boolean isOccludingNeighborFaces(){
-		return properties.isOccluding();
-	}
-	
-	public Biome getBiome() {
-		return biome;
+	public int getZ() {
+		return z;
 	}
 
-	/**
-	 * This is internally used for light rendering
-	 * It is basically the sun light that is projected onto adjacent faces
-	 */
-	public float getPassedSunLight() {
-		if (sunLight < 0) calculateLight();
-		return sunLight;
-	}
-	
-	/**
-	 * This is internally used for light rendering
-	 * It is basically the block light that is projected onto adjacent faces
-	 */
-	public float getPassedBlockLight() {
-		if (blockLight < 0) calculateLight();
-		return blockLight;
-	}
-	
-	private void calculateLight() {
-		sunLight = getSunLightLevel();
-		blockLight = getBlockLightLevel();
-		
-		if (blockLight > 0 || sunLight > 0) return;
-		
-		for (Direction direction : Direction.values()) {
-			Block neighbor = getRelativeBlock(direction);
-			sunLight = Math.max(neighbor.getSunLightLevel(), sunLight);
-			blockLight = Math.max(neighbor.getBlockLightLevel(), blockLight);
-		}
-	}
-	
-	public Block getRelativeBlock(int x, int y, int z) {
-		Vector3i pos = getPosition().add(x, y, z);
-		return getWorld().getBlock(pos);
-	}
-	
-	public Block getRelativeBlock(Vector3i direction) {
-		Vector3i pos = getPosition().add(direction);
-		return getWorld().getBlock(pos);
-	}
-	
-	public Block getRelativeBlock(Direction direction){
-		return getRelativeBlock(direction.toVector());
-	}
-	
-	public void setWorld(World world) {
-		this.world = world;
+	public Chunk getChunk() {
+		if (chunk == null) chunk = world.getChunkAtBlock(x, y, z);
+		return chunk;
 	}
 
-	public void setBlockState(BlockState blockState) {
-		this.blockState = blockState;
+	public BlockState getBlockState() {
+		if (blockState == null) blockState = getChunk().getBlockState(x, y, z);
+		return blockState;
 	}
 
-	public void setLightData(LightData lightData) {
-		this.lightData = lightData;
-		
-		this.blockLight = -1f;
-		this.sunLight = -1f;
+	public LightData getLightData() {
+		if (lightData.getSkyLight() < 0) getChunk().getLightData(x, y, z, lightData);
+		return lightData;
 	}
 
-	public void setBiome(Biome biome) {
-		this.biome = biome;
+	public int getBiomeId() {
+		if (biomeId == -1) biomeId = getChunk().getBiome(x, y, z);
+		return biomeId;
 	}
 
-	public void setProperties(BlockProperties properties) {
-		this.properties = properties;
+	public int getSunLightLevel() {
+		return getLightData().getSkyLight();
 	}
-
-	public void setPos(Vector3i pos) {
-		this.pos = pos;
+	
+	public int getBlockLightLevel() {
+		return getLightData().getBlockLight();
 	}
 
 	@Override
 	public String toString() {
-		return "Block{" +
-			   "blockState=" + blockState +
-			   ", biome=" + biome +
-			   ", pos=" + pos +
-			   ", sunLight=" + sunLight +
-			   ", blockLight=" + blockLight +
-			   '}';
+		if (world != null) {
+			return "Block{" +
+				   "world=" + world +
+				   ", x=" + x +
+				   ", y=" + y +
+				   ", z=" + z +
+				   ", chunk=" + getChunk() +
+				   ", blockState=" + getBlockState() +
+				   ", lightData=" + getLightData() +
+				   ", biomeId=" + getBiomeId() +
+				   '}';
+		} else {
+			return "Block{" +
+				   "world=" + world +
+				   ", x=" + x +
+				   ", y=" + y +
+				   ", z=" + z +
+				   '}';
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	protected T self() {
+		return (T) this;
 	}
 
 }

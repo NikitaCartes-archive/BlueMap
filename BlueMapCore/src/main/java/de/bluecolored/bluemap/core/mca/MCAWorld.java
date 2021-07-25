@@ -29,18 +29,13 @@ import com.flowpowered.math.vector.Vector3i;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import de.bluecolored.bluemap.core.BlueMap;
-import de.bluecolored.bluemap.core.MinecraftVersion;
 import de.bluecolored.bluemap.core.debug.DebugDump;
 import de.bluecolored.bluemap.core.logger.Logger;
-import de.bluecolored.bluemap.core.mca.extensions.*;
-import de.bluecolored.bluemap.core.mca.mapping.BiomeMapper;
-import de.bluecolored.bluemap.core.mca.mapping.BlockIdMapper;
-import de.bluecolored.bluemap.core.mca.mapping.BlockPropertiesMapper;
-import de.bluecolored.bluemap.core.world.*;
+import de.bluecolored.bluemap.core.world.BlockState;
+import de.bluecolored.bluemap.core.world.Grid;
+import de.bluecolored.bluemap.core.world.World;
 import net.querz.nbt.CompoundTag;
-import net.querz.nbt.ListTag;
 import net.querz.nbt.NBTUtil;
-import net.querz.nbt.Tag;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -56,62 +51,28 @@ public class MCAWorld implements World {
 
 	@DebugDump private final UUID uuid;
 	@DebugDump private final Path worldFolder;
-	private final MinecraftVersion minecraftVersion;
-	@DebugDump private String name;
-	@DebugDump private Vector3i spawnPoint;
+	@DebugDump private final String name;
+	@DebugDump private final Vector3i spawnPoint;
+
+	@DebugDump private final boolean ignoreMissingLightData;
 
 	private final LoadingCache<Vector2i, MCARegion> regionCache;
 	private final LoadingCache<Vector2i, MCAChunk> chunkCache;
-
-	private BlockIdMapper blockIdMapper;
-	private BlockPropertiesMapper blockPropertiesMapper;
-	private BiomeMapper biomeMapper;
-
-	private final Map<String, List<BlockStateExtension>> blockStateExtensions;
-
-	@DebugDump private boolean ignoreMissingLightData;
-	
-	private final Map<Integer, String> forgeBlockMappings;
 	
 	private MCAWorld(
 			Path worldFolder, 
-			UUID uuid, 
-			MinecraftVersion minecraftVersion,
+			UUID uuid,
 			String name,
-			Vector3i spawnPoint, 
-			BlockIdMapper blockIdMapper,
-			BlockPropertiesMapper blockPropertiesMapper, 
-			BiomeMapper biomeMapper,
+			Vector3i spawnPoint,
 			boolean ignoreMissingLightData
 			) {
 		this.uuid = uuid;
 		this.worldFolder = worldFolder;
-		this.minecraftVersion = minecraftVersion;
 		this.name = name;
 		this.spawnPoint = spawnPoint;
 		
-		this.blockIdMapper = blockIdMapper;
-		this.blockPropertiesMapper = blockPropertiesMapper;
-		this.biomeMapper = biomeMapper;
-		
 		this.ignoreMissingLightData = ignoreMissingLightData;
-		
-		this.forgeBlockMappings = new HashMap<>();
-		
-		this.blockStateExtensions = new HashMap<>();
-		registerBlockStateExtension(new SnowyExtension(minecraftVersion));
-		registerBlockStateExtension(new StairShapeExtension());
-		registerBlockStateExtension(new FireExtension());
-		registerBlockStateExtension(new RedstoneExtension());
-		registerBlockStateExtension(new DoorExtension(minecraftVersion));
-		registerBlockStateExtension(new NetherFenceConnectExtension());
-		registerBlockStateExtension(new TripwireConnectExtension());
-		registerBlockStateExtension(new WallConnectExtension());
-		registerBlockStateExtension(new WoodenFenceConnectExtension(minecraftVersion));
-		registerBlockStateExtension(new GlassPaneConnectExtension());
-		registerBlockStateExtension(new DoublePlantExtension(minecraftVersion));
-		registerBlockStateExtension(new DoubleChestExtension());
-		
+
 		this.regionCache = Caffeine.newBuilder()
 				.executor(BlueMap.THREAD_POOL)
 				.maximumSize(100)
@@ -126,48 +87,30 @@ public class MCAWorld implements World {
 	}
 
 	public BlockState getBlockState(Vector3i pos) {
-		return getChunk(blockToChunk(pos)).getBlockState(pos);
-	}
-	
-	@Override
-	public Biome getBiome(int x, int y, int z) {
-		return getChunk(x >> 4, z >> 4).getBiome(x, y, z);
-	}
-	
-	@Override
-	public Block getBlock(Vector3i pos) {
-		MCAChunk chunk = getChunk(blockToChunk(pos));
-		BlockState blockState = getExtendedBlockState(chunk, pos);
-		LightData lightData = chunk.getLightData(pos);
-		Biome biome = chunk.getBiome(pos.getX(), pos.getY(), pos.getZ());
-		BlockProperties properties = blockPropertiesMapper.get(blockState);
-		return new Block(this, blockState, lightData, biome, properties, pos);
+		return getChunk(pos.getX() >> 4, pos.getZ() >> 4).getBlockState(pos.getX(), pos.getY(), pos.getZ());
 	}
 
-	private BlockState getExtendedBlockState(MCAChunk chunk, Vector3i pos) {
-		BlockState blockState = chunk.getBlockState(pos);
-		
-		if (chunk instanceof ChunkAnvil112) { // only use extensions if old format chunk (1.12) in the new format block-states are saved with extensions
-			for (BlockStateExtension ext : blockStateExtensions.getOrDefault(blockState.getFullId(), Collections.emptyList())) {
-				blockState = ext.extend(this, pos, blockState);
-			}
-		}
-		
-		return blockState;
+	@Override
+	public MCAChunk getChunkAtBlock(int x, int y, int z) {
+		return getChunk(new Vector2i(x >> 4, z >> 4));
 	}
 
 	@Override
 	public MCAChunk getChunk(int x, int z) {
-		return getChunk(new Vector2i(x, z));
+		return getChunk(vec2i(x, z));
 	}
 
-	public MCAChunk getChunk(Vector2i pos) {
+	private MCAChunk getChunk(Vector2i pos) {
 		return chunkCache.get(pos);
 	}
 
 	@Override
 	public MCARegion getRegion(int x, int z) {
-		return regionCache.get(new Vector2i(x, z));
+		return getRegion(vec2i(x, z));
+	}
+
+	private MCARegion getRegion(Vector2i pos) {
+		return regionCache.get(pos);
 	}
 
 	@Override
@@ -252,41 +195,9 @@ public class MCAWorld implements World {
 	public void cleanUpChunkCache() {
 		chunkCache.cleanUp();
 	}
-	
-	public BlockIdMapper getBlockIdMapper() {
-		return blockIdMapper;
-	}
-	
-	public BlockPropertiesMapper getBlockPropertiesMapper() {
-		return blockPropertiesMapper;
-	}
-	
-	public BiomeMapper getBiomeIdMapper() {
-		return biomeMapper;
-	}
-	
-	public void setBlockIdMapper(BlockIdMapper blockIdMapper) {
-		this.blockIdMapper = blockIdMapper;
-	}
-
-	public void setBlockPropertiesMapper(BlockPropertiesMapper blockPropertiesMapper) {
-		this.blockPropertiesMapper = blockPropertiesMapper;
-	}
-
-	public void setBiomeMapper(BiomeMapper biomeMapper) {
-		this.biomeMapper = biomeMapper;
-	}
 
 	public Path getWorldFolder() {
 		return worldFolder;
-	}
-
-	public String getForgeBlockIdMapping(int id) {
-		return forgeBlockMappings.get(id);
-	}
-	
-	public MinecraftVersion getMinecraftVersion() {
-		return minecraftVersion;
 	}
 	
 	private Path getRegionFolder() {
@@ -295,12 +206,6 @@ public class MCAWorld implements World {
 	
 	private File getMCAFile(int regionX, int regionZ) {
 		return getRegionFolder().resolve("r." + regionX + "." + regionZ + ".mca").toFile();
-	}
-
-	private void registerBlockStateExtension(BlockStateExtension extension) {
-		for (String id : extension.getAffectedBlockIds()) {
-			this.blockStateExtensions.computeIfAbsent(id, t -> new ArrayList<>()).add(extension);
-		}
 	}
 
 	private MCARegion loadRegion(Vector2i regionPos) {
@@ -344,11 +249,11 @@ public class MCAWorld implements World {
 		return MCAChunk.empty();
 	}
 
-	public static MCAWorld load(Path worldFolder, UUID uuid, MinecraftVersion version, BlockIdMapper blockIdMapper, BlockPropertiesMapper blockPropertiesMapper, BiomeMapper biomeIdMapper) throws IOException {
-		return load(worldFolder, uuid, version, blockIdMapper, blockPropertiesMapper, biomeIdMapper, null, false);
+	public static MCAWorld load(Path worldFolder, UUID uuid) throws IOException {
+		return load(worldFolder, uuid, null, false);
 	}
 	
-	public static MCAWorld load(Path worldFolder, UUID uuid, MinecraftVersion version, BlockIdMapper blockIdMapper, BlockPropertiesMapper blockPropertiesMapper, BiomeMapper biomeIdMapper, String name, boolean ignoreMissingLightData) throws IOException {
+	public static MCAWorld load(Path worldFolder, UUID uuid, String name, boolean ignoreMissingLightData) throws IOException {
 		try {
 			StringBuilder subDimensionName = new StringBuilder();
 
@@ -380,47 +285,18 @@ public class MCAWorld implements World {
 					levelData.getInt("SpawnX"),
 					levelData.getInt("SpawnY"),
 					levelData.getInt("SpawnZ")
-					);
-			
-			MCAWorld world = new MCAWorld(
-					worldFolder, 
-					uuid, 
-					version,
+			);
+
+			return new MCAWorld(
+					worldFolder,
+					uuid,
 					name,
 					spawnPoint,
-					blockIdMapper,
-					blockPropertiesMapper,
-					biomeIdMapper,
 					ignoreMissingLightData
-					);
-			
-			try {
-				CompoundTag fmlTag = level.getCompoundTag("FML");
-				if (fmlTag == null) fmlTag = level.getCompoundTag("fml");
-				
-				ListTag<? extends Tag<?>> blockIdReg = fmlTag.getCompoundTag("Registries").getCompoundTag("minecraft:blocks").getListTag("ids");
-				for (Tag<?> tag : blockIdReg) {
-					if (tag instanceof CompoundTag) {
-						CompoundTag entry = (CompoundTag) tag;
-						String blockId = entry.getString("K");
-						int numeralId = entry.getInt("V");
-						
-						world.forgeBlockMappings.put(numeralId, blockId);
-					}
-				}
-			} catch (NullPointerException ignore) {}
-			
-			return world;
+			);
 		} catch (ClassCastException | NullPointerException ex) {
 			throw new IOException("Invaid level.dat format!", ex);
 		}
-	}
-	
-	public static Vector2i blockToChunk(Vector3i pos) {
-		return new Vector2i(
-				pos.getX() >> 4,
-				pos.getZ() >> 4
-			);
 	}
 
 	@Override
@@ -430,6 +306,19 @@ public class MCAWorld implements World {
 			   ", worldFolder=" + worldFolder +
 			   ", name='" + name + '\'' +
 			   '}';
+	}
+
+	private static final int VEC_2I_CACHE_SIZE = 0x4000;
+	private static final int VEC_2I_CACHE_MASK = VEC_2I_CACHE_SIZE - 1;
+	private static final Vector2i[] VEC_2I_CACHE = new Vector2i[VEC_2I_CACHE_SIZE];
+	private static Vector2i vec2i(int x, int y) {
+		int cacheIndex = (x * 1456 ^ y * 948375892) & VEC_2I_CACHE_MASK;
+		Vector2i possibleMatch = VEC_2I_CACHE[cacheIndex];
+
+		if (possibleMatch != null && possibleMatch.getX() == x && possibleMatch.getY() == y)
+			return possibleMatch;
+
+		return VEC_2I_CACHE[cacheIndex] = new Vector2i(x, y);
 	}
 
 }

@@ -30,7 +30,6 @@ import com.flowpowered.math.vector.Vector3i;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.UUID;
-import java.util.function.Predicate;
 
 /**
  * Represents a World on the Server<br>
@@ -58,21 +57,9 @@ public interface World {
 	Grid getRegionGrid();
 
 	/**
-	 * Returns the {@link Biome} on the specified position or the default biome if the block is not generated yet.
+	 * Returns the {@link Chunk} on the specified block-position
 	 */
-	Biome getBiome(int x, int y, int z);
-	
-	/**
-	 * Returns the {@link Block} on the specified position or an air-block if the block is not generated yet.
-	 */
-	Block getBlock(Vector3i pos);
-	
-	/**
-	 * Returns the {@link Block} on the specified position or an air-block if the block is not generated yet.
-	 */
-	default Block getBlock(int x, int y, int z) {
-		return getBlock(new Vector3i(x, y, z));
-	}
+	Chunk getChunkAtBlock(int x, int y, int z);
 
 	/**
 	 * Returns the {@link Chunk} on the specified chunk-position
@@ -80,7 +67,7 @@ public interface World {
 	Chunk getChunk(int x, int z);
 
 	/**
-	 * Returns the Chunk on the specified chunk-position
+	 * Returns the {@link Region} on the specified region-position
 	 */
 	Region getRegion(int x, int z);
 

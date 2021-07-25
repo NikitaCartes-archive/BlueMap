@@ -24,9 +24,7 @@
  */
 package de.bluecolored.bluemap.core.mca;
 
-import com.flowpowered.math.vector.Vector3i;
 import de.bluecolored.bluemap.core.logger.Logger;
-import de.bluecolored.bluemap.core.mca.mapping.BiomeMapper;
 import de.bluecolored.bluemap.core.world.Biome;
 import de.bluecolored.bluemap.core.world.BlockState;
 import de.bluecolored.bluemap.core.world.LightData;
@@ -38,18 +36,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class ChunkAnvil113 extends MCAChunk {
-	private BiomeMapper biomeIdMapper;
-
 	private boolean isGenerated;
 	private boolean hasLight;
 	private Section[] sections;
 	private int[] biomes;
 	
 	@SuppressWarnings("unchecked")
-	public ChunkAnvil113(CompoundTag chunkTag, boolean ignoreMissingLightData, BiomeMapper biomeIdMapper) {
+	public ChunkAnvil113(CompoundTag chunkTag, boolean ignoreMissingLightData) {
 		super(chunkTag);
-		
-		this.biomeIdMapper = biomeIdMapper;
 		
 		CompoundTag levelData = chunkTag.getCompoundTag("Level");
 		
@@ -97,38 +91,39 @@ public class ChunkAnvil113 extends MCAChunk {
 	}
 
 	@Override
-	public BlockState getBlockState(Vector3i pos) {
-		int sectionY = pos.getY() >> 4;
+	public BlockState getBlockState(int x, int y, int z) {
+		int sectionY = y >> 4;
 		if (sectionY < 0 || sectionY >= this.sections.length) return BlockState.AIR;
 		
 		Section section = this.sections[sectionY];
 		if (section == null) return BlockState.AIR;
 		
-		return section.getBlockState(pos);
+		return section.getBlockState(x, y, z);
 	}
 
 	@Override
-	public LightData getLightData(Vector3i pos) {
-		if (!hasLight) return LightData.SKY;
+	public LightData getLightData(int x, int y, int z, LightData target) {
+		if (!hasLight) return target.set(15, 0);
 
-		int sectionY = pos.getY() >> 4;
+		int sectionY = y >> 4;
 		if (sectionY < 0 || sectionY >= this.sections.length)
-			return (pos.getY() < 0) ? LightData.ZERO : LightData.SKY;
+			return (y < 0) ? target.set(0, 0) : target.set(15, 0);
 		
 		Section section = this.sections[sectionY];
-		if (section == null) return LightData.SKY;
+		if (section == null) return target.set(15, 0);
 		
-		return section.getLightData(pos);
+		return section.getLightData(x, y, z, target);
 	}
 
 	@Override
-	public Biome getBiome(int x, int y, int z) {
+	public int getBiome(int x, int y, int z) {
 		x = x & 0xF; // Math.floorMod(pos.getX(), 16)
 		z = z & 0xF;
 		int biomeIntIndex = z * 16 + x;
 
-		if (biomeIntIndex >= this.biomes.length) return Biome.DEFAULT;
-		return biomeIdMapper.get(biomes[biomeIntIndex]);
+		if (biomeIntIndex >= this.biomes.length) return Biome.DEFAULT.getNumeralId();
+
+		return biomes[biomeIntIndex];
 	}
 	
 	private class Section {
@@ -188,12 +183,11 @@ public class ChunkAnvil113 extends MCAChunk {
 			return sectionY;
 		}
 		
-		public BlockState getBlockState(Vector3i pos) {
+		public BlockState getBlockState(int x, int y, int z) {
 			if (blocks.length == 0) return BlockState.AIR;
-			
-			int x = pos.getX() & 0xF; // Math.floorMod(pos.getX(), 16)
-			int y = pos.getY() & 0xF;
-			int z = pos.getZ() & 0xF;
+
+			x &= 0xF; y &= 0xF; z &= 0xF; // Math.floorMod(pos.getX(), 16)
+
 			int blockIndex = y * 256 + z * 16 + x;
 			
 			long value = MCAMath.getValueFromLongStream(blocks, blockIndex, bitsPerBlock);
@@ -205,20 +199,19 @@ public class ChunkAnvil113 extends MCAChunk {
 			return palette[(int) value];
 		}
 		
-		public LightData getLightData(Vector3i pos) {
-			if (blockLight.length == 0 && skyLight.length == 0) return LightData.ZERO;
-			
-			int x = pos.getX() & 0xF; // Math.floorMod(pos.getX(), 16)
-			int y = pos.getY() & 0xF;
-			int z = pos.getZ() & 0xF;
+		public LightData getLightData(int x, int y, int z, LightData target) {
+			if (blockLight.length == 0 && skyLight.length == 0) return target.set(0, 0);
+
+			x &= 0xF; y &= 0xF; z &= 0xF; // Math.floorMod(pos.getX(), 16)
+
 			int blockByteIndex = y * 256 + z * 16 + x;
 			int blockHalfByteIndex = blockByteIndex >> 1; // blockByteIndex / 2 
 			boolean largeHalf = (blockByteIndex & 0x1) != 0; // (blockByteIndex % 2) == 0
 
-			int blockLight = this.blockLight.length > 0 ? MCAMath.getByteHalf(this.blockLight[blockHalfByteIndex], largeHalf) : 0;
-			int skyLight = this.skyLight.length > 0 ? MCAMath.getByteHalf(this.skyLight[blockHalfByteIndex], largeHalf) : 0;
-			
-			return new LightData(skyLight, blockLight);
+			return target.set(
+					this.skyLight.length > 0 ? MCAMath.getByteHalf(this.skyLight[blockHalfByteIndex], largeHalf) : 0,
+					this.blockLight.length > 0 ? MCAMath.getByteHalf(this.blockLight[blockHalfByteIndex], largeHalf) : 0
+			);
 		}
 	}
 	

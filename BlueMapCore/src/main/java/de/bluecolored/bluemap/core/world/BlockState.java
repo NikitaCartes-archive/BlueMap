@@ -24,15 +24,10 @@
  */
 package de.bluecolored.bluemap.core.world;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import java.util.Objects;
-import java.util.StringJoiner;
 
 /**
  * Represents a BlockState<br>
@@ -42,10 +37,10 @@ import java.util.StringJoiner;
  */
 public class BlockState {
 	
-	private static final Pattern BLOCKSTATE_SERIALIZATION_PATTERN = Pattern.compile("^(.+?)(?:\\[(.*)\\])?$");
-	
-	public static final BlockState AIR = new BlockState("minecraft:air", Collections.emptyMap());
-	public static final BlockState MISSING = new BlockState("bluemap:missing", Collections.emptyMap());
+	private static final Pattern BLOCKSTATE_SERIALIZATION_PATTERN = Pattern.compile("^(.+?)(?:\\[(.*)])?$");
+
+	public static final BlockState AIR = new BlockState("minecraft:air");
+	public static final BlockState MISSING = new BlockState("bluemap:missing");
 
 	private boolean hashed;
 	private int hash;
@@ -55,6 +50,8 @@ public class BlockState {
 	private final String fullId;
 	private final Map<String, String> properties;
 
+	private final boolean isAir, isWater, isWaterlogged;
+
 	public BlockState(String id) {
 		this(id, Collections.emptyMap());
 	}
@@ -63,8 +60,9 @@ public class BlockState {
 		this.hashed = false;
 		this.hash = 0;
 		
-		this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
-		
+		//this.properties = Collections.unmodifiableMap(new HashMap<>(properties)); // <- not doing this to reduce object-creation
+		this.properties = properties;
+
 		//resolve namespace
 		String namespace = "minecraft";
 		int namespaceSeperator = id.indexOf(':');
@@ -76,19 +74,15 @@ public class BlockState {
 		this.id = id;
 		this.namespace = namespace;
 		this.fullId = namespace + ":" + id;
-	}
-	
-	private BlockState(BlockState blockState, String withKey, String withValue) {
-		this.hashed = false;
-		this.hash = 0;
-		
-		Map<String, String> props = new HashMap<>(blockState.getProperties());
-		props.put(withKey, withValue);
-		
-		this.id = blockState.getId();
-		this.namespace = blockState.getNamespace();
-		this.fullId = namespace + ":" + id;
-		this.properties = Collections.unmodifiableMap(props);
+
+		// special fast-access properties
+		this.isAir =
+				"minecraft:air".equals(this.fullId) ||
+				"minecraft:cave_air".equals(this.fullId) ||
+				"minecraft:void_air".equals(this.fullId);
+
+		this.isWater = "minecraft:water".equals(this.fullId);
+		this.isWaterlogged = "true".equals(properties.get("waterlogged"));
 	}
 
 	/**
@@ -126,14 +120,19 @@ public class BlockState {
 	public Map<String, String> getProperties() {
 		return properties;
 	}
-	
-	/**
-	 * Returns a new BlockState with the given property changed
-	 */
-	public BlockState with(String property, String value) {
-		return new BlockState(this, property, value);
+
+	public boolean isAir() {
+		return isAir;
 	}
-	
+
+	public boolean isWater() {
+		return isWater;
+	}
+
+	public boolean isWaterlogged() {
+		return isWaterlogged;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) return true;
@@ -141,8 +140,7 @@ public class BlockState {
 		if (!(obj instanceof BlockState)) return false;
 		BlockState b = (BlockState) obj;
 		if (!Objects.equals(getFullId(), b.getFullId())) return false;
-		if (!Objects.equals(getProperties(), b.getProperties())) return false;
-		return true;
+		return Objects.equals(getProperties(), b.getProperties());
 	}
 	
 	@Override
@@ -168,7 +166,9 @@ public class BlockState {
 	public static BlockState fromString(String serializedBlockState) throws IllegalArgumentException {
 		try {
 			Matcher m = BLOCKSTATE_SERIALIZATION_PATTERN.matcher(serializedBlockState);
-			m.find();
+
+			if (!m.find())
+				throw new IllegalArgumentException("'" + serializedBlockState + "' could not be parsed to a BlockState!");
 	
 			Map<String, String> pt = new HashMap<>();
 			String g2 = m.group(2);
