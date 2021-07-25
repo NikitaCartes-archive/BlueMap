@@ -139,9 +139,6 @@ public class BlueMapService {
 		maps = new HashMap<>();
 		worlds = new HashMap<>();
 
-		ConfigManager configManager = getConfigManager();
-		configManager.loadResourceConfigs(configFolder, getResourcePack());
-
 		for (MapConfig mapConfig : getRenderConfig().getMapConfigs()) {
 			String id = mapConfig.getId();
 			String name = mapConfig.getName();
