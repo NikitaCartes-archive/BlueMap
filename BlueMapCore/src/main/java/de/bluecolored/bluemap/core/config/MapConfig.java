@@ -58,10 +58,10 @@ public class MapConfig implements MapSettings {
     private Vector3i min, max;
     private boolean renderEdges;
 
-	private Compression compression;
+    private Compression compression;
 
     private boolean ignoreMissingLightData;
-	private boolean persistent;
+    private boolean persistent;
 
     private int hiresTileSize;
 
@@ -112,14 +112,14 @@ public class MapConfig implements MapSettings {
         //renderEdges
         this.renderEdges = node.node("renderEdges").getBoolean(true);
 
-		//compressionType and compressionLevel
-		this.compression = loadCompressionSettings(node);
+        //compressionType and compressionLevel
+        this.compression = loadCompressionSettings(node);
 
         //ignoreMissingLightData
         this.ignoreMissingLightData = node.node("ignoreMissingLightData").getBoolean(false);
 
-		//persistent
-		this.persistent = node.node("persistent").getBoolean(false);
+        //persistent
+        this.persistent = node.node("persistent").getBoolean(false);
 
         //tile-settings
         this.hiresTileSize = node.node("hires", "tileSize").getInt(32);
@@ -132,32 +132,32 @@ public class MapConfig implements MapSettings {
 
     }
 
-	private Compression loadCompressionSettings(ConfigurationNode node) throws IOException {
-		String compressionTypeId = node.node("compressionType").getString("gzip");
-		CompressionType compressionType = CompressionType.GZIP;
-		try {
-			compressionType = CompressionType.forId(compressionTypeId);
-		} catch (NoSuchElementException ex) {
-			throw new IOException("Invalid configuration: Unknown CompressionType '" + compressionTypeId + "'!");
-		}
+    private Compression loadCompressionSettings(ConfigurationNode node) throws IOException {
+        String compressionTypeId = node.node("compressionType").getString("gzip");
+        CompressionType compressionType = CompressionType.GZIP;
+        try {
+            compressionType = CompressionType.forId(compressionTypeId);
+        } catch (NoSuchElementException ex) {
+            throw new IOException("Invalid configuration: Unknown CompressionType '" + compressionTypeId + "'!");
+        }
 
-		//backwards-compatibility for 'useCompression' setting
-		if (node.node("compressionType").virtual()){
-			boolean useCompression = node.node("useCompression").getBoolean(true);
-			compressionType = useCompression ? CompressionType.GZIP : CompressionType.PLAIN;
-		}
+        //backwards-compatibility for 'useCompression' setting
+        if (node.node("compressionType").virtual()){
+            boolean useCompression = node.node("useCompression").getBoolean(true);
+            compressionType = useCompression ? CompressionType.GZIP : CompressionType.PLAIN;
+        }
 
-		int compressionLevel = node.node("compressionLevel").getInt(-1);
+        int compressionLevel = node.node("compressionLevel").getInt(-1);
 
-		//check brotli availabillity
-		if (compressionType == CompressionType.BROTLI && !Brotli4jLoader.isAvailable()){
-			Logger.global.logWarning("Library for brotli-compression is unavailable! Falling back to gzip for map '" + this.id + "'!");
-			compressionType = CompressionType.GZIP;
-			compressionLevel = -1; //also use default compression-level if we have to fall-back to gzip
-		}
+        //check brotli availabillity
+        if (compressionType == CompressionType.BROTLI && !Brotli4jLoader.isAvailable()){
+            Logger.global.logWarning("Library for brotli-compression is unavailable! Falling back to gzip for map '" + this.id + "'!");
+            compressionType = CompressionType.GZIP;
+            compressionLevel = -1; //also use default compression-level if we have to fall-back to gzip
+        }
 
-		return new Compression(compressionType, compressionLevel == -1 ? compressionType.getDefaultCompressionLevel() : compressionLevel);
-	}
+        return new Compression(compressionType, compressionLevel == -1 ? compressionType.getDefaultCompressionLevel() : compressionLevel);
+    }
 
     public String getId() {
         return id;
@@ -203,9 +203,9 @@ public class MapConfig implements MapSettings {
         return ignoreMissingLightData;
     }
 
-	public boolean isPersistent() {
-		return persistent;
-	}
+    public boolean isPersistent() {
+        return persistent;
+    }
 
     @Override
     public int getHiresTileSize() {
@@ -237,9 +237,9 @@ public class MapConfig implements MapSettings {
         return renderEdges;
     }
 
-	@Override
-	public Compression getCompression() {
-		return compression;
-	}
+    @Override
+    public Compression getCompression() {
+        return compression;
+    }
 
 }

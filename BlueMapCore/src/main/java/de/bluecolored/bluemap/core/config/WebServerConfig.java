@@ -38,62 +38,62 @@ public class WebServerConfig {
     private boolean enabled = true;
     private File webRoot = new File("web");
 
-	private InetAddress bindAddress = null;
-	private int port = 8100;
-	private int httpsPort = 8101;
+    private InetAddress bindAddress = null;
+    private int port = 8100;
+    private int httpsPort = 8101;
 
-	private File privateKeyPem;
-	private File certificatePem;
+    private File privateKeyPem;
+    private File certificatePem;
 
-	private int maxConnections = 100;
+    private int maxConnections = 100;
 
     public WebServerConfig(ConfigurationNode node) throws IOException {
 
         //enabled
         enabled = node.node("enabled").getBoolean(false);
 
-		if (enabled) {
-			//webroot
-			String webRootString = node.node("webroot").getString();
-			if (webRootString == null) throw new IOException("Invalid configuration: Node webroot is not defined");
-			webRoot = ConfigManager.toFolder(webRootString);
-			
-			//ip
-			String bindAddressString = node.node("ip").getString("");
-			if (bindAddressString.isEmpty() || bindAddressString.equals("0.0.0.0") || bindAddressString.equals("::0")) {
-				bindAddress = new InetSocketAddress(0).getAddress(); // 0.0.0.0
-			} else if (bindAddressString.equals("#getLocalHost")) {
-				bindAddress = InetAddress.getLocalHost();
-			} else {
-				bindAddress = InetAddress.getByName(bindAddressString);
-			}
-			
-			//port
-			port = node.node("port").getInt(8100);
-			httpsPort = node.node("httpsPort").getInt(8101);
+        if (enabled) {
+            //webroot
+            String webRootString = node.node("webroot").getString();
+            if (webRootString == null) throw new IOException("Invalid configuration: Node webroot is not defined");
+            webRoot = ConfigManager.toFolder(webRootString);
 
-			//certs
-			String privateKeyPem = node.node("privateKeyPem").getString();
-			if (privateKeyPem == null) throw new IOException("Invalid configuration: Node privateKeyPem is not defined");
-			this.privateKeyPem = new File(privateKeyPem);
+            //ip
+            String bindAddressString = node.node("ip").getString("");
+            if (bindAddressString.isEmpty() || bindAddressString.equals("0.0.0.0") || bindAddressString.equals("::0")) {
+                bindAddress = new InetSocketAddress(0).getAddress(); // 0.0.0.0
+            } else if (bindAddressString.equals("#getLocalHost")) {
+                bindAddress = InetAddress.getLocalHost();
+            } else {
+                bindAddress = InetAddress.getByName(bindAddressString);
+            }
 
-			String certificatePem = node.node("certificatePem").getString();
-			if (certificatePem == null) throw new IOException("Invalid configuration: Node certificatePem is not defined");
-			this.certificatePem = new File(certificatePem);
+            //port
+            port = node.node("port").getInt(8100);
+            httpsPort = node.node("httpsPort").getInt(8101);
 
-			//maxConnectionCount
-			maxConnections = node.node("maxConnectionCount").getInt(100);
-		}
-		
-	}
-	
-	public boolean isWebserverEnabled() {
-		return enabled;
-	}
-	
-	public File getWebRoot() {
-		return webRoot;
-	}
+            //certs
+            String privateKeyPem = node.node("privateKeyPem").getString();
+            if (privateKeyPem == null) throw new IOException("Invalid configuration: Node privateKeyPem is not defined");
+            this.privateKeyPem = new File(privateKeyPem);
+
+            String certificatePem = node.node("certificatePem").getString();
+            if (certificatePem == null) throw new IOException("Invalid configuration: Node certificatePem is not defined");
+            this.certificatePem = new File(certificatePem);
+
+            //maxConnectionCount
+            maxConnections = node.node("maxConnectionCount").getInt(100);
+        }
+
+    }
+
+    public boolean isWebserverEnabled() {
+        return enabled;
+    }
+
+    public File getWebRoot() {
+        return webRoot;
+    }
 
     public InetAddress getWebserverBindAddress() {
         return bindAddress;
@@ -103,20 +103,20 @@ public class WebServerConfig {
         return port;
     }
 
-	public int getWebserverHttpsPort() {
-		return httpsPort;
-	}
+    public int getWebserverHttpsPort() {
+        return httpsPort;
+    }
 
-	public File getPrivateKeyPem() {
-		return privateKeyPem;
-	}
+    public File getPrivateKeyPem() {
+        return privateKeyPem;
+    }
 
-	public File getCertificatePem() {
-		return certificatePem;
-	}
+    public File getCertificatePem() {
+        return certificatePem;
+    }
 
-	public int getWebserverMaxConnections() {
-		return maxConnections;
-	}
-	
+    public int getWebserverMaxConnections() {
+        return maxConnections;
+    }
+
 }

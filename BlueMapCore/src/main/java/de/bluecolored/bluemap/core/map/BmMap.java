@@ -85,12 +85,12 @@ public class BmMap {
                 new Grid(settings.getHiresTileSize(), 2)
         );
 
-		this.lowresModelManager = new LowresModelManager(
-				fileRoot.resolve("lowres"),
-				new Vector2i(settings.getLowresPointsPerLowresTile(), settings.getLowresPointsPerLowresTile()),
-				new Vector2i(settings.getLowresPointsPerHiresTile(), settings.getLowresPointsPerHiresTile()),
-				settings.getCompression()
-		);
+        this.lowresModelManager = new LowresModelManager(
+                fileRoot.resolve("lowres"),
+                new Vector2i(settings.getLowresPointsPerLowresTile(), settings.getLowresPointsPerLowresTile()),
+                new Vector2i(settings.getLowresPointsPerHiresTile(), settings.getLowresPointsPerHiresTile()),
+                settings.getCompression()
+        );
 
         this.tileFilter = t -> true;
 

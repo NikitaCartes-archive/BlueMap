@@ -40,30 +40,30 @@ import java.nio.file.Path;
 
 public class HiresModelManager {
 
-	private final Path fileRoot;
-	private final HiresModelRenderer renderer;
-	private final Grid tileGrid;
-	private final Compression compression;
+    private final Path fileRoot;
+    private final HiresModelRenderer renderer;
+    private final Grid tileGrid;
+    private final Compression compression;
 
-	public HiresModelManager(Path fileRoot, ResourcePack resourcePack, RenderSettings renderSettings, Grid tileGrid) {
-		this(fileRoot, new HiresModelRenderer(resourcePack, renderSettings), tileGrid, renderSettings.getCompression());
-	}
+    public HiresModelManager(Path fileRoot, ResourcePack resourcePack, RenderSettings renderSettings, Grid tileGrid) {
+        this(fileRoot, new HiresModelRenderer(resourcePack, renderSettings), tileGrid, renderSettings.getCompression());
+    }
 
-	public HiresModelManager(Path fileRoot, HiresModelRenderer renderer, Grid tileGrid, Compression compression) {
-		this.fileRoot = fileRoot;
-		this.renderer = renderer;
+    public HiresModelManager(Path fileRoot, HiresModelRenderer renderer, Grid tileGrid, Compression compression) {
+        this.fileRoot = fileRoot;
+        this.renderer = renderer;
 
-		this.tileGrid = tileGrid;
-		
-		this.compression = compression;
-	}
-	
-	/**
-	 * Renders the given world tile with the provided render-settings
-	 */
-	public HiresTileMeta render(World world, Vector2i tile) {
-		Vector2i tileMin = tileGrid.getCellMin(tile);
-		Vector2i tileMax = tileGrid.getCellMax(tile);
+        this.tileGrid = tileGrid;
+
+        this.compression = compression;
+    }
+
+    /**
+     * Renders the given world tile with the provided render-settings
+     */
+    public HiresTileMeta render(World world, Vector2i tile) {
+        Vector2i tileMin = tileGrid.getCellMin(tile);
+        Vector2i tileMax = tileGrid.getCellMax(tile);
 
         Vector3i modelMin = new Vector3i(tileMin.getX(), Integer.MIN_VALUE, tileMin.getY());
         Vector3i modelMax = new Vector3i(tileMax.getX(), Integer.MAX_VALUE, tileMax.getY());
@@ -75,41 +75,41 @@ public class HiresModelManager {
 
         HiresTileModel.recycleInstance(model);
 
-		return tileMeta;
-	}
-	
-	private void save(final HiresTileModel model, Vector2i tile) {
-		File file = getFile(tile);
+        return tileMeta;
+    }
 
-		OutputStream os = null;
-		try {
-			os = compression.createOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
-			model.writeBufferGeometryJson(os);
-		} catch (IOException e){
-			Logger.global.logError("Failed to save hires model: " + file, e);
-		} finally {
-			try {
-				if (os != null) {
-					os.close();
-				}
-			} catch (IOException e) {
-				Logger.global.logError("Failed to close file: " + file, e);
-			}
-		}
-	}
+    private void save(final HiresTileModel model, Vector2i tile) {
+        File file = getFile(tile);
 
-	/**
-	 * Returns the tile-grid
-	 */
-	public Grid getTileGrid() {
-		return tileGrid;
-	}
+        OutputStream os = null;
+        try {
+            os = compression.createOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
+            model.writeBufferGeometryJson(os);
+        } catch (IOException e){
+            Logger.global.logError("Failed to save hires model: " + file, e);
+        } finally {
+            try {
+                if (os != null) {
+                    os.close();
+                }
+            } catch (IOException e) {
+                Logger.global.logError("Failed to close file: " + file, e);
+            }
+        }
+    }
 
-	/**
-	 * Returns the file for a tile
-	 */
-	public File getFile(Vector2i tilePos){
-		return FileUtils.coordsToFile(fileRoot, tilePos, "json" + compression.getCompressionType().getFileExtension());
-	}
-	
+    /**
+     * Returns the tile-grid
+     */
+    public Grid getTileGrid() {
+        return tileGrid;
+    }
+
+    /**
+     * Returns the file for a tile
+     */
+    public File getFile(Vector2i tilePos){
+        return FileUtils.coordsToFile(fileRoot, tilePos, "json" + compression.getCompressionType().getFileExtension());
+    }
+
 }

@@ -39,73 +39,73 @@ import java.io.StringWriter;
 
 public class LiveAPIHandler extends PathHandler {
 
-	private final ServerInterface server;
-	private final PluginConfig config;
-	
-	public LiveAPIHandler(ServerInterface server, PluginConfig config, HttpHandler next) {
-		super(next);
+    private final ServerInterface server;
+    private final PluginConfig config;
 
-		this.server = server;
-		this.config = config;
+    public LiveAPIHandler(ServerInterface server, PluginConfig config, HttpHandler next) {
+        super(next);
 
-		this.addPrefixPath("/live", this::handleLivePingRequest);
-		this.addExactPath("/live/players", this::handlePlayersRequest);
-	}
+        this.server = server;
+        this.config = config;
 
-	public void handleLivePingRequest(HttpServerExchange exchange) {
-		exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "application/json");
-		exchange.getResponseHeaders().add(Headers.CACHE_CONTROL, "no-cache");
+        this.addPrefixPath("/live", this::handleLivePingRequest);
+        this.addExactPath("/live/players", this::handlePlayersRequest);
+    }
 
-		exchange.getResponseSender().send("{\"status\":\"OK\"}");
-		exchange.endExchange();
-	}
+    public void handleLivePingRequest(HttpServerExchange exchange) {
+        exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "application/json");
+        exchange.getResponseHeaders().add(Headers.CACHE_CONTROL, "no-cache");
 
-	public void handlePlayersRequest(HttpServerExchange exchange) throws Exception {
-		if (!exchange.getRequestMethod().equals(Methods.GET)) {
-			String server = exchange.getResponseHeaders().getFirst(Headers.SERVER);
+        exchange.getResponseSender().send("{\"status\":\"OK\"}");
+        exchange.endExchange();
+    }
 
-			exchange.setStatusCode(400);
-			exchange.getResponseSender().send(
-					"400 - Bad Request\n" +
-					server
-			);
-			exchange.endExchange();
-			return;
-		}
+    public void handlePlayersRequest(HttpServerExchange exchange) throws Exception {
+        if (!exchange.getRequestMethod().equals(Methods.GET)) {
+            String server = exchange.getResponseHeaders().getFirst(Headers.SERVER);
 
-		try (
-				StringWriter data = new StringWriter();
-				JsonWriter json = new JsonWriter(data);
-		) {
-			json.beginObject();
-			json.name("players").beginArray();
-			for (Player player : server.getOnlinePlayers()) {
-				if (!player.isOnline()) continue;
+            exchange.setStatusCode(400);
+            exchange.getResponseSender().send(
+                    "400 - Bad Request\n" +
+                            server
+            );
+            exchange.endExchange();
+            return;
+        }
 
-				if (config.isHideInvisible() && player.isInvisible()) continue;
-				if (config.isHideSneaking() && player.isSneaking()) continue;
-				if (config.getHiddenGameModes().contains(player.getGamemode().getId())) continue;
+        try (
+                StringWriter data = new StringWriter();
+                JsonWriter json = new JsonWriter(data);
+        ) {
+            json.beginObject();
+            json.name("players").beginArray();
+            for (Player player : server.getOnlinePlayers()) {
+                if (!player.isOnline()) continue;
 
-				json.beginObject();
-				json.name("uuid").value(player.getUuid().toString());
-				json.name("name").value(player.getName().toPlainString());
-				json.name("world").value(player.getWorld().toString());
-				json.name("position").beginObject();
-				json.name("x").value(player.getPosition().getX());
-				json.name("y").value(player.getPosition().getY());
-				json.name("z").value(player.getPosition().getZ());
-				json.endObject();
-				json.endObject();
-			}
+                if (config.isHideInvisible() && player.isInvisible()) continue;
+                if (config.isHideSneaking() && player.isSneaking()) continue;
+                if (config.getHiddenGameModes().contains(player.getGamemode().getId())) continue;
 
-			json.endArray();
-			json.endObject();
+                json.beginObject();
+                json.name("uuid").value(player.getUuid().toString());
+                json.name("name").value(player.getName().toPlainString());
+                json.name("world").value(player.getWorld().toString());
+                json.name("position").beginObject();
+                json.name("x").value(player.getPosition().getX());
+                json.name("y").value(player.getPosition().getY());
+                json.name("z").value(player.getPosition().getZ());
+                json.endObject();
+                json.endObject();
+            }
 
-			exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "application/json");
-			exchange.getResponseHeaders().add(Headers.CACHE_CONTROL, "no-cache");
+            json.endArray();
+            json.endObject();
 
-			exchange.getResponseSender().send(data.toString());
-		}
-	}
-	
+            exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "application/json");
+            exchange.getResponseHeaders().add(Headers.CACHE_CONTROL, "no-cache");
+
+            exchange.getResponseSender().send(data.toString());
+        }
+    }
+
 }

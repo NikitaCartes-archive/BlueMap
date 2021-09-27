@@ -28,7 +28,7 @@ import de.bluecolored.bluemap.common.BlueMapService;
 import de.bluecolored.bluemap.common.InterruptableReentrantLock;
 import de.bluecolored.bluemap.common.MissingResourcesException;
 import de.bluecolored.bluemap.common.api.BlueMapAPIImpl;
-import de.bluecolored.bluemap.common.live.LiveAPIRequestHandler;
+import de.bluecolored.bluemap.common.live.LiveAPIHandler;
 import de.bluecolored.bluemap.common.plugin.serverinterface.ServerEventListener;
 import de.bluecolored.bluemap.common.plugin.serverinterface.ServerInterface;
 import de.bluecolored.bluemap.common.plugin.skins.PlayerSkinUpdater;
@@ -86,8 +86,8 @@ public class Plugin implements ServerEventListener {
     private Map<UUID, World> worlds;
     private Map<String, BmMap> maps;
 
-	private RenderManager renderManager;
-	private Undertow webServer;
+    private RenderManager renderManager;
+    private Undertow webServer;
 
     private Timer daemonTimer;
 
@@ -140,46 +140,49 @@ public class Plugin implements ServerEventListener {
                     pluginState = new PluginState();
                 }
 
-				//create and start webserver
-				if (webServerConfig.isWebserverEnabled()) {
-					FileUtils.mkDirs(webServerConfig.getWebRoot());
-					HttpRequestHandler requestHandler = new FileRequestHandler(webServerConfig.getWebRoot().toPath(), "BlueMap v" + BlueMap.VERSION);
-					
-					//inject live api if enabled
-					if (pluginConfig.isLiveUpdatesEnabled()) {
-						requestHandler = new LiveAPIRequestHandler(serverInterface, pluginConfig, requestHandler);
-					}
-					
-					webServer = new WebServer(
-							webServerConfig.getWebserverBindAddress(),
-							webServerConfig.getWebserverPort(),
-							webServerConfig.getWebserverMaxConnections(),
-							requestHandler,
-							false
-					);
-					webServer.start();
-				}
-		
-				//try load resources
-				try {
-					blueMap.getResourcePack();
-				} catch (MissingResourcesException ex) {
-					Logger.global.logWarning("BlueMap is missing important resources!");
-					Logger.global.logWarning("You must accept the required file download in order for BlueMap to work!");
-					try { Logger.global.logWarning("Please check: " + blueMap.getCoreConfigFile().getCanonicalPath()); } catch (IOException ignored) {}
-					Logger.global.logInfo("If you have changed the config you can simply reload the plugin using: /bluemap reload");
-					
-					unload();
-					return;
-				}
-				
-				//load worlds and maps
-				worlds = blueMap.getWorlds();
-				maps = blueMap.getMaps();
-				
-				//warn if no maps are configured
-				if (maps.isEmpty()) {
-					Logger.global.logWarning("There are no valid maps configured, please check your render-config! Disabling BlueMap...");
+                //create and start webserver
+                if (webServerConfig.isWebserverEnabled()) {
+                    FileUtils.mkDirs(webServerConfig.getWebRoot());
+
+                    HttpHandler notFoundHandler = new NotFoundHandler();
+                    HttpHandler rootHandler = new StaticFileHandler(webServerConfig.getWebRoot().toPath(), notFoundHandler);
+
+                    if (pluginConfig.isLiveUpdatesEnabled()) {
+                        rootHandler = new LiveAPIHandler(serverInterface, pluginConfig, rootHandler);
+                    }
+
+                    webServer = Undertow.builder()
+                            .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
+                            .addHttpListener(
+                                    webServerConfig.getWebserverPort(),
+                                    webServerConfig.getWebserverBindAddress().getHostAddress()
+                            )
+                            .setHandler(rootHandler)
+                            .build();
+
+                    webServer.start();
+                }
+
+                //try load resources
+                try {
+                    blueMap.getResourcePack();
+                } catch (MissingResourcesException ex) {
+                    Logger.global.logWarning("BlueMap is missing important resources!");
+                    Logger.global.logWarning("You must accept the required file download in order for BlueMap to work!");
+                    try { Logger.global.logWarning("Please check: " + blueMap.getCoreConfigFile().getCanonicalPath()); } catch (IOException ignored) {}
+                    Logger.global.logInfo("If you have changed the config you can simply reload the plugin using: /bluemap reload");
+
+                    unload();
+                    return;
+                }
+
+                //load worlds and maps
+                worlds = blueMap.getWorlds();
+                maps = blueMap.getMaps();
+
+                //warn if no maps are configured
+                if (maps.isEmpty()) {
+                    Logger.global.logWarning("There are no valid maps configured, please check your render-config! Disabling BlueMap...");
 
                     unload();
                     return;
@@ -316,8 +319,8 @@ public class Plugin implements ServerEventListener {
                 if (renderManager != null) renderManager.stop();
                 renderManager = null;
 
-				if (webServer != null) webServer.stop();
-				webServer = null;
+                if (webServer != null) webServer.stop();
+                webServer = null;
 
                 //clear resources and configs
                 blueMap = null;
@@ -450,17 +453,17 @@ public class Plugin implements ServerEventListener {
         return renderManager;
     }
 
-	public Undertow getWebServer() {
-		return webServer;
-	}
-	
-	public boolean isLoaded() {
-		return loaded;
-	}
-	
-	public String getImplementationType() {
-		return implementationType;
-	}
+    public Undertow getWebServer() {
+        return webServer;
+    }
+
+    public boolean isLoaded() {
+        return loaded;
+    }
+
+    public String getImplementationType() {
+        return implementationType;
+    }
 
     public MinecraftVersion getMinecraftVersion() {
         return minecraftVersion;

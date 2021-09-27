@@ -174,30 +174,30 @@ public class BlueMapCLI {
         WebServerConfig config = blueMap.getWebServerConfig();
         FileUtils.mkDirs(config.getWebRoot());
 
-		HttpHandler notFoundHandler = new NotFoundHandler();
-		HttpHandler rootHandler = new StaticFileHandler(config.getWebRoot().toPath(), notFoundHandler);
+        HttpHandler notFoundHandler = new NotFoundHandler();
+        HttpHandler rootHandler = new StaticFileHandler(config.getWebRoot().toPath(), notFoundHandler);
 
-		Undertow webServer = null;
-		try {
-			webServer = Undertow.builder()
-					.setServerOption(UndertowOptions.ENABLE_HTTP2, true)
-					.addHttpListener(
-							config.getWebserverPort(),
-							config.getWebserverBindAddress().getHostAddress()
-					)
-					.addHttpsListener(
-							config.getWebserverHttpsPort(),
-							config.getWebserverBindAddress().getHostAddress(),
-							PEMImporter.createSSLContext(config.getPrivateKeyPem(), config.getCertificatePem(), "qwerty")
-					)
-					.setHandler(rootHandler)
-					.build();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+        Undertow webServer = null;
+        try {
+            webServer = Undertow.builder()
+                    .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
+                    .addHttpListener(
+                            config.getWebserverPort(),
+                            config.getWebserverBindAddress().getHostAddress()
+                    )
+                    .addHttpsListener(
+                            config.getWebserverHttpsPort(),
+                            config.getWebserverBindAddress().getHostAddress(),
+                            PEMImporter.createSSLContext(config.getPrivateKeyPem(), config.getCertificatePem(), "qwerty")
+                    )
+                    .setHandler(rootHandler)
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-		webServer.start();
-	}
+        webServer.start();
+    }
 
     public static void main(String[] args) {
         CommandLineParser parser = new DefaultParser();

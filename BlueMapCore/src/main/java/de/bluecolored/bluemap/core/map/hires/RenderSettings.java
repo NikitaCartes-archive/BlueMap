@@ -75,12 +75,12 @@ public interface RenderSettings {
         return true;
     }
 
-	/**
-	 * The compression that should be used to compress the generated files.
-	 */
-	default Compression getCompression() {
-		return new Compression(CompressionType.GZIP);
-	}
+    /**
+     * The compression that should be used to compress the generated files.
+     */
+    default Compression getCompression() {
+        return new Compression(CompressionType.GZIP);
+    }
 
     default boolean isInsideRenderBoundaries(int x, int z) {
         Vector3i min = getMin();

@@ -79,7 +79,7 @@ public class LowresModel {
      * Saves this model to its file
      * @param force if this is false, the model is only saved if it has any changes
      */
-    public void save(File file, boolean force, boolean useGzip) throws IOException {
+    public void save(File file, boolean force, Compression compression) throws IOException {
         if (!force && !hasUnsavedChanges) return;
         this.hasUnsavedChanges = false;
 
@@ -90,15 +90,15 @@ public class LowresModel {
             json = model.toJson();
         }
 
-		synchronized (fileLock) {
-			OutputStream os = compression.createOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
-			OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
-			try (
-					PrintWriter pw = new PrintWriter(osw)
-			){
-				pw.print(json);
-			}
-		}
+        synchronized (fileLock) {
+            OutputStream os = compression.createOutputStream(new BufferedOutputStream(AtomicFileHelper.createFilepartOutputStream(file)));
+            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
+            try (
+                    PrintWriter pw = new PrintWriter(osw)
+            ){
+                pw.print(json);
+            }
+        }
     }
 
     public void flush(){
