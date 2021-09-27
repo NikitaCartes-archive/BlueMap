@@ -65,15 +65,15 @@ public class HiresModelManager {
 		Vector2i tileMin = tileGrid.getCellMin(tile);
 		Vector2i tileMax = tileGrid.getCellMax(tile);
 
-		Vector3i modelMin = new Vector3i(tileMin.getX(), Integer.MIN_VALUE, tileMin.getY());
-		Vector3i modelMax = new Vector3i(tileMax.getX(), Integer.MAX_VALUE, tileMax.getY());
+        Vector3i modelMin = new Vector3i(tileMin.getX(), Integer.MIN_VALUE, tileMin.getY());
+        Vector3i modelMax = new Vector3i(tileMax.getX(), Integer.MAX_VALUE, tileMax.getY());
 
-		HiresTileModel model = HiresTileModel.claimInstance();
+        HiresTileModel model = HiresTileModel.claimInstance();
 
-		HiresTileMeta tileMeta = renderer.render(world, modelMin, modelMax, model);
-		save(model, tile);
+        HiresTileMeta tileMeta = renderer.render(world, modelMin, modelMax, model);
+        save(model, tile);
 
-		HiresTileModel.recycleInstance(model);
+        HiresTileModel.recycleInstance(model);
 
 		return tileMeta;
 	}

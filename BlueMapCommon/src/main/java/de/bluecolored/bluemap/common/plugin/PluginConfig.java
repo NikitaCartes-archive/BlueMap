@@ -35,61 +35,69 @@ import java.util.concurrent.TimeUnit;
 @DebugDump
 public class PluginConfig {
 
-	private boolean liveUpdatesEnabled = false;
-	private boolean skinDownloadEnabled = false;
-	private Collection<String> hiddenGameModes = Collections.emptyList();
-	private boolean hideInvisible = false;
-	private boolean hideSneaking = false;
-	private long fullUpdateIntervalMinutes = TimeUnit.HOURS.toMinutes(24);
-	
-	public PluginConfig(ConfigurationNode node) {
+    private boolean liveUpdatesEnabled;
+    private boolean skinDownloadEnabled;
+    private Collection<String> hiddenGameModes;
+    private boolean hideInvisible;
+    private boolean hideSneaking;
+    private int playerRenderLimit;
+    private long fullUpdateIntervalMinutes;
 
-		//liveUpdates
-		liveUpdatesEnabled = node.node("liveUpdates").getBoolean(true);
+    public PluginConfig(ConfigurationNode node) {
 
-		//skinDownloadEnabled
-		skinDownloadEnabled = node.node("skinDownload").getBoolean(true);
-		
-		//hiddenGameModes
-		hiddenGameModes = new ArrayList<>();
-		for (ConfigurationNode gameModeNode : node.node("hiddenGameModes").childrenList()) {
-			hiddenGameModes.add(gameModeNode.getString());
-		}
-		hiddenGameModes = Collections.unmodifiableCollection(hiddenGameModes);
-		
-		//hideInvisible
-		hideInvisible = node.node("hideInvisible").getBoolean(true);
-		
-		//hideSneaking
-		hideSneaking = node.node("hideSneaking").getBoolean(false);
+        //liveUpdates
+        liveUpdatesEnabled = node.node("liveUpdates").getBoolean(true);
 
-		//periodic map updates
-		fullUpdateIntervalMinutes = node.node("fullUpdateInterval").getLong(TimeUnit.HOURS.toMinutes(24));
-		
-	}
+        //skinDownloadEnabled
+        skinDownloadEnabled = node.node("skinDownload").getBoolean(true);
 
-	public boolean isLiveUpdatesEnabled() {
-		return this.liveUpdatesEnabled;
-	}
-	
-	public boolean isSkinDownloadEnabled() {
-		return this.skinDownloadEnabled;
-	}
+        //hiddenGameModes
+        hiddenGameModes = new ArrayList<>();
+        for (ConfigurationNode gameModeNode : node.node("hiddenGameModes").childrenList()) {
+            hiddenGameModes.add(gameModeNode.getString());
+        }
+        hiddenGameModes = Collections.unmodifiableCollection(hiddenGameModes);
 
-	public Collection<String> getHiddenGameModes() {
-		return this.hiddenGameModes;
-	}
+        //hideInvisible
+        hideInvisible = node.node("hideInvisible").getBoolean(true);
 
-	public boolean isHideInvisible() {
-		return this.hideInvisible;
-	}
+        //hideSneaking
+        hideSneaking = node.node("hideSneaking").getBoolean(false);
 
-	public boolean isHideSneaking() {
-		return this.hideSneaking;
-	}
+        //playerRenderLimit
+        playerRenderLimit = node.node("playerRenderLimit").getInt(-1);
 
-	public long getFullUpdateIntervalMinutes() {
-		return fullUpdateIntervalMinutes;
-	}
+        //periodic map updates
+        fullUpdateIntervalMinutes = node.node("fullUpdateInterval").getLong(TimeUnit.HOURS.toMinutes(24));
+
+    }
+
+    public boolean isLiveUpdatesEnabled() {
+        return this.liveUpdatesEnabled;
+    }
+
+    public boolean isSkinDownloadEnabled() {
+        return this.skinDownloadEnabled;
+    }
+
+    public Collection<String> getHiddenGameModes() {
+        return this.hiddenGameModes;
+    }
+
+    public boolean isHideInvisible() {
+        return this.hideInvisible;
+    }
+
+    public boolean isHideSneaking() {
+        return this.hideSneaking;
+    }
+
+    public int getPlayerRenderLimit() {
+        return playerRenderLimit;
+    }
+
+    public long getFullUpdateIntervalMinutes() {
+        return fullUpdateIntervalMinutes;
+    }
 
 }

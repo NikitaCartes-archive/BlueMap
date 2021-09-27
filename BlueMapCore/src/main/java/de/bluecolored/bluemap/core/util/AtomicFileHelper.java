@@ -24,72 +24,83 @@
  */
 package de.bluecolored.bluemap.core.util;
 
-import java.io.*;
-import java.nio.file.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 
 public class AtomicFileHelper {
 
-	public static OutputStream createFilepartOutputStream(final File file) throws IOException {
-		return createFilepartOutputStream(file.toPath());
-	}
+    public static OutputStream createFilepartOutputStream(final File file) throws IOException {
+        return createFilepartOutputStream(file.toPath());
+    }
 
-	public static OutputStream createFilepartOutputStream(final Path file) throws IOException {
-		final Path partFile = getPartFile(file);
-		Files.createDirectories(partFile.getParent());
+    public static OutputStream createFilepartOutputStream(final Path file) throws IOException {
+        final Path partFile = getPartFile(file);
+        Files.createDirectories(partFile.getParent());
 
-		OutputStream os = Files.newOutputStream(partFile, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
-		return new WrappedOutputStream(os, () -> {
-			Files.deleteIfExists(file);
-			Files.createDirectories(file.getParent());
+        OutputStream os = Files.newOutputStream(partFile, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+        return new WrappedOutputStream(os, () -> {
+            if (!Files.exists(partFile)) return;
 
-			try {
-				Files.move(partFile, file, StandardCopyOption.ATOMIC_MOVE);
-			} catch (AtomicMoveNotSupportedException ex) {
-				Files.move(partFile, file);
-			}
-		});
-	}
+            Files.deleteIfExists(file);
+            Files.createDirectories(file.getParent());
 
-	private static Path getPartFile(Path file) {
-		return file.normalize().getParent().resolve(file.getFileName() + ".filepart");
-	}
+            try {
+                Files.move(partFile, file, StandardCopyOption.ATOMIC_MOVE);
+            } catch (FileNotFoundException ignore) {
+            } catch (IOException ex) {
+                try {
+                    Files.move(partFile, file);
+                } catch (FileNotFoundException ignore) {}
+            }
+        });
+    }
 
-	private static class WrappedOutputStream extends OutputStream {
+    private static Path getPartFile(Path file) {
+        return file.normalize().getParent().resolve(file.getFileName() + ".filepart");
+    }
 
-		private final OutputStream out;
-		private final ThrowingRunnable<IOException> onClose;
+    private static class WrappedOutputStream extends OutputStream {
 
-		private WrappedOutputStream(OutputStream out, ThrowingRunnable<IOException> onClose) {
-			this.out = out;
-			this.onClose = onClose;
-		}
+        private final OutputStream out;
+        private final ThrowingRunnable<IOException> onClose;
 
-		@Override
-		public void write(int b) throws IOException {
-			out.write(b);
-		}
+        private WrappedOutputStream(OutputStream out, ThrowingRunnable<IOException> onClose) {
+            this.out = out;
+            this.onClose = onClose;
+        }
 
-		@Override
-		public void write(byte[] b) throws IOException {
-			out.write(b);
-		}
+        @Override
+        public void write(int b) throws IOException {
+            out.write(b);
+        }
 
-		@Override
-		public void write(byte[] b, int off, int len) throws IOException {
-			out.write(b, off, len);
-		}
+        @Override
+        public void write(byte[] b) throws IOException {
+            out.write(b);
+        }
 
-		@Override
-		public void flush() throws IOException {
-			out.flush();
-		}
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            out.write(b, off, len);
+        }
 
-		@Override
-		public void close() throws IOException {
-			out.close();
-			onClose.run();
-		}
+        @Override
+        public void flush() throws IOException {
+            out.flush();
+        }
 
-	}
+        @Override
+        public void close() throws IOException {
+            out.close();
+            onClose.run();
+        }
+
+    }
 
 }

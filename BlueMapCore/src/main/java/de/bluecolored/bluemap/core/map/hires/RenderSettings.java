@@ -29,45 +29,81 @@ import de.bluecolored.bluemap.core.util.Compression;
 import de.bluecolored.bluemap.core.util.CompressionType;
 
 public interface RenderSettings {
-	
-	Vector3i DEFAULT_MIN = Vector3i.from(Integer.MIN_VALUE);
-	Vector3i DEFAULT_MAX = Vector3i.from(Integer.MAX_VALUE);
 
-	/**
-	 * Whether faces that have a sky-light-value of 0 will be rendered or not.
-	 */
-	default boolean isExcludeFacesWithoutSunlight() {
-		return true;
-	}
+    Vector3i DEFAULT_MIN = Vector3i.from(Integer.MIN_VALUE);
+    Vector3i DEFAULT_MAX = Vector3i.from(Integer.MAX_VALUE);
 
-	/**
-	 * The minimum position of blocks to render
-	 */
-	default Vector3i getMin() {
-		return DEFAULT_MIN;
-	}
-	
-	/**
-	 * The maximum position of blocks to render
-	 */
-	default Vector3i getMax() {
-		return DEFAULT_MAX;
-	}
+    /**
+     * The y-level below which "caves" will not be rendered
+     */
+    int getRemoveCavesBelowY();
 
-	
-	/**
-	 * The same as the maximum height, but blocks that are above this value are treated as AIR.<br>
-	 * This leads to the top-faces being rendered instead of them being culled.
-	 */
-	default boolean isRenderEdges() {
-		return true;
-	}
-	
+    /**
+     * If blocklight should be used instead of sky light to detect "caves"
+     */
+    boolean isCaveDetectionUsesBlockLight();
+
+    /**
+     * The minimum position of blocks to render
+     */
+    default Vector3i getMin() {
+        return DEFAULT_MIN;
+    }
+
+    /**
+     * The maximum position of blocks to render
+     */
+    default Vector3i getMax() {
+        return DEFAULT_MAX;
+    }
+
+    /**
+     * The (default) ambient light of this world (0-1)
+     */
+    float getAmbientLight();
+
+    /**
+     * The sky-light level of this world (0-15)
+     */
+    int getWorldSkyLight();
+
+    /**
+     * The same as the maximum height, but blocks that are above this value are treated as AIR.<br>
+     * This leads to the top-faces being rendered instead of them being culled.
+     */
+    default boolean isRenderEdges() {
+        return true;
+    }
+
 	/**
 	 * The compression that should be used to compress the generated files.
 	 */
 	default Compression getCompression() {
 		return new Compression(CompressionType.GZIP);
 	}
-	
+
+    default boolean isInsideRenderBoundaries(int x, int z) {
+        Vector3i min = getMin();
+        Vector3i max = getMax();
+
+        return
+                x >= min.getX() &&
+                x <= max.getX() &&
+                z >= min.getZ() &&
+                z <= max.getZ();
+    }
+
+    default boolean isInsideRenderBoundaries(int x, int y, int z) {
+        Vector3i min = getMin();
+        Vector3i max = getMax();
+
+        return
+                x >= min.getX() &&
+                x <= max.getX() &&
+                z >= min.getZ() &&
+                z <= max.getZ() &&
+                y >= min.getY() &&
+                y <= max.getY();
+    }
+
 }

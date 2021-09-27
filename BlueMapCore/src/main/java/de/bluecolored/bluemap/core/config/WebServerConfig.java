@@ -35,8 +35,8 @@ import java.net.InetSocketAddress;
 @DebugDump
 public class WebServerConfig {
 
-	private boolean enabled = true;
-	private File webRoot = new File("web");
+    private boolean enabled = true;
+    private File webRoot = new File("web");
 
 	private InetAddress bindAddress = null;
 	private int port = 8100;
@@ -47,10 +47,10 @@ public class WebServerConfig {
 
 	private int maxConnections = 100;
 
-	public WebServerConfig(ConfigurationNode node) throws IOException {
-		
-		//enabled
-		enabled = node.node("enabled").getBoolean(false);
+    public WebServerConfig(ConfigurationNode node) throws IOException {
+
+        //enabled
+        enabled = node.node("enabled").getBoolean(false);
 
 		if (enabled) {
 			//webroot
@@ -95,13 +95,13 @@ public class WebServerConfig {
 		return webRoot;
 	}
 
-	public InetAddress getWebserverBindAddress() {
-		return bindAddress;
-	}
+    public InetAddress getWebserverBindAddress() {
+        return bindAddress;
+    }
 
-	public int getWebserverPort() {
-		return port;
-	}
+    public int getWebserverPort() {
+        return port;
+    }
 
 	public int getWebserverHttpsPort() {
 		return httpsPort;

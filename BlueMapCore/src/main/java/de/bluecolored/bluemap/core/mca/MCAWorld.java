@@ -46,279 +46,283 @@ import java.util.concurrent.TimeUnit;
 
 public class MCAWorld implements World {
 
-	private static final Grid CHUNK_GRID = new Grid(16);
-	private static final Grid REGION_GRID = new Grid(32).multiply(CHUNK_GRID);
+    private static final Grid CHUNK_GRID = new Grid(16);
+    private static final Grid REGION_GRID = new Grid(32).multiply(CHUNK_GRID);
 
-	@DebugDump private final UUID uuid;
-	@DebugDump private final Path worldFolder;
-	@DebugDump private final String name;
-	@DebugDump private final Vector3i spawnPoint;
+    @DebugDump private final UUID uuid;
+    @DebugDump private final Path worldFolder;
+    @DebugDump private final String name;
+    @DebugDump private final Vector3i spawnPoint;
 
-	@DebugDump private final boolean ignoreMissingLightData;
+    @DebugDump private final int skyLight;
+    @DebugDump private final boolean ignoreMissingLightData;
 
-	private final LoadingCache<Vector2i, MCARegion> regionCache;
-	private final LoadingCache<Vector2i, MCAChunk> chunkCache;
-	
-	private MCAWorld(
-			Path worldFolder, 
-			UUID uuid,
-			String name,
-			Vector3i spawnPoint,
-			boolean ignoreMissingLightData
-			) {
-		this.uuid = uuid;
-		this.worldFolder = worldFolder;
-		this.name = name;
-		this.spawnPoint = spawnPoint;
-		
-		this.ignoreMissingLightData = ignoreMissingLightData;
+    private final LoadingCache<Vector2i, MCARegion> regionCache;
+    private final LoadingCache<Vector2i, MCAChunk> chunkCache;
 
-		this.regionCache = Caffeine.newBuilder()
-				.executor(BlueMap.THREAD_POOL)
-				.maximumSize(100)
-				.expireAfterWrite(1, TimeUnit.MINUTES)
-				.build(this::loadRegion);
+    private MCAWorld(
+            Path worldFolder,
+            UUID uuid,
+            String name,
+            Vector3i spawnPoint,
+            int skyLight,
+            boolean ignoreMissingLightData
+            ) {
+        this.uuid = uuid;
+        this.worldFolder = worldFolder;
+        this.name = name;
+        this.spawnPoint = spawnPoint;
 
-		this.chunkCache = Caffeine.newBuilder()
-				.executor(BlueMap.THREAD_POOL)
-				.maximumSize(500)
-				.expireAfterWrite(1, TimeUnit.MINUTES)
-				.build(this::loadChunk);
-	}
+        this.skyLight = skyLight;
+        this.ignoreMissingLightData = ignoreMissingLightData;
 
-	public BlockState getBlockState(Vector3i pos) {
-		return getChunk(pos.getX() >> 4, pos.getZ() >> 4).getBlockState(pos.getX(), pos.getY(), pos.getZ());
-	}
+        this.regionCache = Caffeine.newBuilder()
+                .executor(BlueMap.THREAD_POOL)
+                .maximumSize(100)
+                .expireAfterWrite(1, TimeUnit.MINUTES)
+                .build(this::loadRegion);
 
-	@Override
-	public MCAChunk getChunkAtBlock(int x, int y, int z) {
-		return getChunk(new Vector2i(x >> 4, z >> 4));
-	}
+        this.chunkCache = Caffeine.newBuilder()
+                .executor(BlueMap.THREAD_POOL)
+                .maximumSize(500)
+                .expireAfterWrite(1, TimeUnit.MINUTES)
+                .build(this::loadChunk);
+    }
 
-	@Override
-	public MCAChunk getChunk(int x, int z) {
-		return getChunk(vec2i(x, z));
-	}
+    public BlockState getBlockState(Vector3i pos) {
+        return getChunk(pos.getX() >> 4, pos.getZ() >> 4).getBlockState(pos.getX(), pos.getY(), pos.getZ());
+    }
 
-	private MCAChunk getChunk(Vector2i pos) {
-		return chunkCache.get(pos);
-	}
+    @Override
+    public MCAChunk getChunkAtBlock(int x, int y, int z) {
+        return getChunk(x >> 4, z >> 4);
+    }
 
-	@Override
-	public MCARegion getRegion(int x, int z) {
-		return getRegion(vec2i(x, z));
-	}
+    @Override
+    public MCAChunk getChunk(int x, int z) {
+        return getChunk(vec2i(x, z));
+    }
 
-	private MCARegion getRegion(Vector2i pos) {
-		return regionCache.get(pos);
-	}
+    private MCAChunk getChunk(Vector2i pos) {
+        return chunkCache.get(pos);
+    }
 
-	@Override
-	public Collection<Vector2i> listRegions() {
-		File[] regionFiles = getRegionFolder().toFile().listFiles();
-		if (regionFiles == null) return Collections.emptyList();
+    @Override
+    public MCARegion getRegion(int x, int z) {
+        return getRegion(vec2i(x, z));
+    }
 
-		List<Vector2i> regions = new ArrayList<>(regionFiles.length);
+    private MCARegion getRegion(Vector2i pos) {
+        return regionCache.get(pos);
+    }
 
-		for (File file : regionFiles) {
-			if (!file.getName().endsWith(".mca")) continue;
-			if (file.length() <= 0) continue;
+    @Override
+    public Collection<Vector2i> listRegions() {
+        File[] regionFiles = getRegionFolder().toFile().listFiles();
+        if (regionFiles == null) return Collections.emptyList();
 
-			try {
-				String[] filenameParts = file.getName().split("\\.");
-				int rX = Integer.parseInt(filenameParts[1]);
-				int rZ = Integer.parseInt(filenameParts[2]);
+        List<Vector2i> regions = new ArrayList<>(regionFiles.length);
 
-				regions.add(new Vector2i(rX, rZ));
-			} catch (NumberFormatException ignore) {}
-		}
+        for (File file : regionFiles) {
+            if (!file.getName().endsWith(".mca")) continue;
+            if (file.length() <= 0) continue;
 
-		return regions;
-	}
+            try {
+                String[] filenameParts = file.getName().split("\\.");
+                int rX = Integer.parseInt(filenameParts[1]);
+                int rZ = Integer.parseInt(filenameParts[2]);
 
-	@Override
-	public String getName() {
-		return name;
-	}
+                regions.add(new Vector2i(rX, rZ));
+            } catch (NumberFormatException ignore) {}
+        }
 
-	@Override
-	public UUID getUUID() {
-		return uuid;
-	}
-	
-	@Override
-	public Path getSaveFolder() {
-		return worldFolder;
-	}
+        return regions;
+    }
 
-	@Override
-	public int getSeaLevel() {
-		return 63;
-	}
+    @Override
+    public String getName() {
+        return name;
+    }
 
-	@Override
-	public int getMinY(int x, int z) {
-		return getChunk(x >> 4, z >> 4).getMinY(x, z);
-	}
+    @Override
+    public UUID getUUID() {
+        return uuid;
+    }
 
-	@Override
-	public int getMaxY(int x, int z) {
-		return getChunk(x >> 4, z >> 4).getMaxY(x, z);
-	}
+    @Override
+    public Path getSaveFolder() {
+        return worldFolder;
+    }
 
-	@Override
-	public Grid getChunkGrid() {
-		return CHUNK_GRID;
-	}
+    @Override
+    public int getSkyLight() {
+        return skyLight;
+    }
 
-	@Override
-	public Grid getRegionGrid() {
-		return REGION_GRID;
-	}
+    @Override
+    public int getMinY(int x, int z) {
+        return getChunk(x >> 4, z >> 4).getMinY(x, z);
+    }
 
-	@Override
-	public Vector3i getSpawnPoint() {
-		return spawnPoint;
-	}
-	
-	@Override
-	public void invalidateChunkCache() {
-		chunkCache.invalidateAll();
-	}
-	
-	@Override
-	public void invalidateChunkCache(int x, int z) {
-		chunkCache.invalidate(new Vector2i(x, z));
-	}
-	
-	@Override
-	public void cleanUpChunkCache() {
-		chunkCache.cleanUp();
-	}
+    @Override
+    public int getMaxY(int x, int z) {
+        return getChunk(x >> 4, z >> 4).getMaxY(x, z);
+    }
 
-	public Path getWorldFolder() {
-		return worldFolder;
-	}
-	
-	private Path getRegionFolder() {
-		return worldFolder.resolve("region");
-	}
-	
-	private File getMCAFile(int regionX, int regionZ) {
-		return getRegionFolder().resolve("r." + regionX + "." + regionZ + ".mca").toFile();
-	}
+    @Override
+    public Grid getChunkGrid() {
+        return CHUNK_GRID;
+    }
 
-	private MCARegion loadRegion(Vector2i regionPos) {
-		return loadRegion(regionPos.getX(), regionPos.getY());
-	}
+    @Override
+    public Grid getRegionGrid() {
+        return REGION_GRID;
+    }
 
-	private MCARegion loadRegion(int x, int z) {
-		File regionPath = getMCAFile(x, z);
-		return new MCARegion(this, regionPath);
-	}
+    @Override
+    public Vector3i getSpawnPoint() {
+        return spawnPoint;
+    }
 
-	private MCAChunk loadChunk(Vector2i chunkPos) {
-		return loadChunk(chunkPos.getX(), chunkPos.getY());
-	}
+    @Override
+    public void invalidateChunkCache() {
+        chunkCache.invalidateAll();
+    }
 
-	private MCAChunk loadChunk(int x, int z) {
-		final int tries = 3;
-		final int tryInterval = 1000;
+    @Override
+    public void invalidateChunkCache(int x, int z) {
+        chunkCache.invalidate(vec2i(x, z));
+    }
 
-		Exception loadException = null;
-		for (int i = 0; i < tries; i++) {
-			try {
-				return getRegion(x >> 5, z >> 5)
-						.loadChunk(x, z, ignoreMissingLightData);
-			} catch (IOException | RuntimeException e) {
-				if (loadException != null) e.addSuppressed(loadException);
-				loadException = e;
+    @Override
+    public void cleanUpChunkCache() {
+        chunkCache.cleanUp();
+    }
 
-				if (i + 1 < tries) {
-					try {
-						Thread.sleep(tryInterval);
-					} catch (InterruptedException ex) {
-						Thread.currentThread().interrupt();
-						break;
-					}
-				}
-			}
-		}
+    public Path getWorldFolder() {
+        return worldFolder;
+    }
 
-		Logger.global.logDebug("Unexpected exception trying to load chunk (x:" + x + ", z:" + z + "):" + loadException);
-		return MCAChunk.empty();
-	}
+    private Path getRegionFolder() {
+        return worldFolder.resolve("region");
+    }
 
-	public static MCAWorld load(Path worldFolder, UUID uuid) throws IOException {
-		return load(worldFolder, uuid, null, false);
-	}
-	
-	public static MCAWorld load(Path worldFolder, UUID uuid, String name, boolean ignoreMissingLightData) throws IOException {
-		try {
-			StringBuilder subDimensionName = new StringBuilder();
+    public boolean isIgnoreMissingLightData() {
+        return ignoreMissingLightData;
+    }
 
-			File levelFolder = worldFolder.toFile();
-			File levelFile = new File(levelFolder, "level.dat");
-			int searchDepth = 0;
+    private File getMCAFile(int regionX, int regionZ) {
+        return getRegionFolder().resolve("r." + regionX + "." + regionZ + ".mca").toFile();
+    }
 
-			while (!levelFile.exists() && searchDepth < 4) {
-				searchDepth++;
-				subDimensionName.insert(0, "/").insert(1, levelFolder.getName());
-				levelFolder = levelFolder.getParentFile();
-				if (levelFolder == null) break;
+    private MCARegion loadRegion(Vector2i regionPos) {
+        return loadRegion(regionPos.getX(), regionPos.getY());
+    }
 
-				levelFile = new File(levelFolder, "level.dat");
-			}
+    private MCARegion loadRegion(int x, int z) {
+        File regionPath = getMCAFile(x, z);
+        return new MCARegion(this, regionPath);
+    }
 
-			if (!levelFile.exists()) {
-				throw new FileNotFoundException("Could not find a level.dat file for this world!");
-			}
-			
-			CompoundTag level = (CompoundTag) NBTUtil.readTag(levelFile);
-			CompoundTag levelData = level.getCompoundTag("Data");
-			
-			if (name == null) {
-				name = levelData.getString("LevelName") + subDimensionName;
-			}
+    private MCAChunk loadChunk(Vector2i chunkPos) {
+        return loadChunk(chunkPos.getX(), chunkPos.getY());
+    }
 
-			Vector3i spawnPoint = new Vector3i(
-					levelData.getInt("SpawnX"),
-					levelData.getInt("SpawnY"),
-					levelData.getInt("SpawnZ")
-			);
+    private MCAChunk loadChunk(int x, int z) {
+        final int tries = 3;
+        final int tryInterval = 1000;
 
-			return new MCAWorld(
-					worldFolder,
-					uuid,
-					name,
-					spawnPoint,
-					ignoreMissingLightData
-			);
-		} catch (ClassCastException | NullPointerException ex) {
-			throw new IOException("Invaid level.dat format!", ex);
-		}
-	}
+        Exception loadException = null;
+        for (int i = 0; i < tries; i++) {
+            try {
+                return getRegion(x >> 5, z >> 5)
+                        .loadChunk(x, z, ignoreMissingLightData);
+            } catch (IOException | RuntimeException e) {
+                if (loadException != null) e.addSuppressed(loadException);
+                loadException = e;
 
-	@Override
-	public String toString() {
-		return "MCAWorld{" +
-			   "uuid=" + uuid +
-			   ", worldFolder=" + worldFolder +
-			   ", name='" + name + '\'' +
-			   '}';
-	}
+                if (i + 1 < tries) {
+                    try {
+                        Thread.sleep(tryInterval);
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
 
-	private static final int VEC_2I_CACHE_SIZE = 0x4000;
-	private static final int VEC_2I_CACHE_MASK = VEC_2I_CACHE_SIZE - 1;
-	private static final Vector2i[] VEC_2I_CACHE = new Vector2i[VEC_2I_CACHE_SIZE];
-	private static Vector2i vec2i(int x, int y) {
-		int cacheIndex = (x * 1456 ^ y * 948375892) & VEC_2I_CACHE_MASK;
-		Vector2i possibleMatch = VEC_2I_CACHE[cacheIndex];
+        Logger.global.logDebug("Unexpected exception trying to load chunk (x:" + x + ", z:" + z + "):" + loadException);
+        return MCAChunk.empty();
+    }
 
-		if (possibleMatch != null && possibleMatch.getX() == x && possibleMatch.getY() == y)
-			return possibleMatch;
+    public static MCAWorld load(Path worldFolder, UUID uuid, String name, int skyLight, boolean ignoreMissingLightData) throws IOException {
+        try {
+            StringBuilder subDimensionName = new StringBuilder();
 
-		return VEC_2I_CACHE[cacheIndex] = new Vector2i(x, y);
-	}
+            File levelFolder = worldFolder.toFile();
+            File levelFile = new File(levelFolder, "level.dat");
+            int searchDepth = 0;
+
+            while (!levelFile.exists() && searchDepth < 4) {
+                searchDepth++;
+                subDimensionName.insert(0, "/").insert(1, levelFolder.getName());
+                levelFolder = levelFolder.getParentFile();
+                if (levelFolder == null) break;
+
+                levelFile = new File(levelFolder, "level.dat");
+            }
+
+            if (!levelFile.exists()) {
+                throw new FileNotFoundException("Could not find a level.dat file for this world!");
+            }
+
+            CompoundTag level = (CompoundTag) NBTUtil.readTag(levelFile);
+            CompoundTag levelData = level.getCompoundTag("Data");
+
+            if (name == null) {
+                name = levelData.getString("LevelName") + subDimensionName;
+            }
+
+            Vector3i spawnPoint = new Vector3i(
+                    levelData.getInt("SpawnX"),
+                    levelData.getInt("SpawnY"),
+                    levelData.getInt("SpawnZ")
+            );
+
+            return new MCAWorld(
+                    worldFolder,
+                    uuid,
+                    name,
+                    spawnPoint,
+                    skyLight,
+                    ignoreMissingLightData
+            );
+        } catch (ClassCastException | NullPointerException ex) {
+            throw new IOException("Invaid level.dat format!", ex);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "MCAWorld{" +
+               "uuid=" + uuid +
+               ", worldFolder=" + worldFolder +
+               ", name='" + name + '\'' +
+               '}';
+    }
+
+    private static final int VEC_2I_CACHE_SIZE = 0x4000;
+    private static final int VEC_2I_CACHE_MASK = VEC_2I_CACHE_SIZE - 1;
+    private static final Vector2i[] VEC_2I_CACHE = new Vector2i[VEC_2I_CACHE_SIZE];
+    private static Vector2i vec2i(int x, int y) {
+        int cacheIndex = (x * 1456 ^ y * 948375892) & VEC_2I_CACHE_MASK;
+        Vector2i possibleMatch = VEC_2I_CACHE[cacheIndex];
+
+        if (possibleMatch != null && possibleMatch.getX() == x && possibleMatch.getY() == y)
+            return possibleMatch;
+
+        return VEC_2I_CACHE[cacheIndex] = new Vector2i(x, y);
+    }
 
 }

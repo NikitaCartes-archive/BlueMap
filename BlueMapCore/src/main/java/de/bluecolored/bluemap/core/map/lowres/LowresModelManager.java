@@ -57,12 +57,12 @@ public class LowresModelManager {
 		
 	public LowresModelManager(Path fileRoot, Vector2i pointsPerLowresTile, Vector2i pointsPerHiresTile, Compression compression) {
 		this.fileRoot = fileRoot;
-		
+
 		this.pointsPerLowresTile = pointsPerLowresTile;
 		this.pointsPerHiresTile = pointsPerHiresTile;
-		
+
 		models = new ConcurrentHashMap<>();
-		
+
 		this.compression = compression;
 	}
 	
@@ -75,89 +75,89 @@ public class LowresModelManager {
 				tileMeta.getSizeZ() / pointsPerHiresTile.getY()
 		);
 
-		Vector2i pointMin = new Vector2i(
-				Math.floorDiv(tileMeta.getMinX(), blocksPerPoint.getX()),
-				Math.floorDiv(tileMeta.getMinZ(), blocksPerPoint.getY())
-		);
+        Vector2i pointMin = new Vector2i(
+                Math.floorDiv(tileMeta.getMinX(), blocksPerPoint.getX()),
+                Math.floorDiv(tileMeta.getMinZ(), blocksPerPoint.getY())
+        );
 
-		Color
-				pointColor = new Color(),
-				columnColor = new Color();
-		
-		for (int tx = 0; tx < pointsPerHiresTile.getX(); tx++){
-			for (int tz = 0; tz < pointsPerHiresTile.getY(); tz++){
-				
-				double height = 0;
-				pointColor.set(0, 0, 0, 0, true);
-				
-				for (int x = 0; x < blocksPerPoint.getX(); x++){
-					for (int z = 0; z < blocksPerPoint.getY(); z++){
-						
-						int rx = tx * blocksPerPoint.getX() + x + tileMeta.getMinX();
-						int rz = tz * blocksPerPoint.getY() + z + tileMeta.getMinZ();
-						height += tileMeta.getHeight(rx, rz);
+        Color
+                pointColor = new Color(),
+                columnColor = new Color();
 
-						tileMeta.getColor(rx, rz, columnColor).premultiplied();
-						pointColor.add(columnColor);
-					}
-				}
+        for (int tx = 0; tx < pointsPerHiresTile.getX(); tx++){
+            for (int tz = 0; tz < pointsPerHiresTile.getY(); tz++){
 
-				pointColor.flatten().straight();
+                double height = 0;
+                pointColor.set(0, 0, 0, 0, true);
 
-				int count = blocksPerPoint.getX() * blocksPerPoint.getY();
-				height /= count;
+                for (int x = 0; x < blocksPerPoint.getX(); x++){
+                    for (int z = 0; z < blocksPerPoint.getY(); z++){
 
-				update(pointMin.getX() + tx, pointMin.getY() + tz, (float) height, pointColor);
-			}
-		}
-	}
-	
-	/**
-	 * Saves all unsaved changes to the models to disk
-	 */
-	public synchronized void save(){
-		for (Entry<File, CachedModel> entry : models.entrySet()){
-			saveModel(entry.getKey(), entry.getValue());
-		}
-		
-		tidyUpModelCache();
-	}
-	
-	/**
-	 * Updates a point on the lowres-model-grid
-	 */
-	public void update(int px, int pz, float height, Color color) {
-		if (color.premultiplied) throw new IllegalArgumentException("Color can not be premultiplied!");
+                        int rx = tx * blocksPerPoint.getX() + x + tileMeta.getMinX();
+                        int rz = tz * blocksPerPoint.getY() + z + tileMeta.getMinZ();
+                        height += tileMeta.getHeight(rx, rz);
 
-		Vector2i point = new Vector2i(px, pz);
-		Vector3f colorV = new Vector3f(color.r, color.g, color.b);
+                        tileMeta.getColor(rx, rz, columnColor).premultiplied();
+                        pointColor.add(columnColor);
+                    }
+                }
 
-		Vector2i tile = pointToTile(point);
-		Vector2i relPoint = getPointRelativeToTile(tile, point);
-		LowresModel model = getModel(tile);
-		model.update(relPoint, height, colorV);
-		
-		if (relPoint.getX() == 0){
-			Vector2i tile2 = tile.add(-1, 0);
-			Vector2i relPoint2 = getPointRelativeToTile(tile2, point);
-			LowresModel model2 = getModel(tile2);
-			model2.update(relPoint2, height, colorV);
-		}
-		
-		if (relPoint.getY() == 0){
-			Vector2i tile2 = tile.add(0, -1);
-			Vector2i relPoint2 = getPointRelativeToTile(tile2, point);
-			LowresModel model2 = getModel(tile2);
-			model2.update(relPoint2, height, colorV);
-		}
-		
-		if (relPoint.getX() == 0 && relPoint.getY() == 0){
-			Vector2i tile2 = tile.add(-1, -1);
-			Vector2i relPoint2 = getPointRelativeToTile(tile2, point);
-			LowresModel model2 = getModel(tile2);
-			model2.update(relPoint2, height, colorV);
-		}
-	}
+                pointColor.flatten().straight();
+
+                int count = blocksPerPoint.getX() * blocksPerPoint.getY();
+                height /= count;
+
+                update(pointMin.getX() + tx, pointMin.getY() + tz, (float) height, pointColor);
+            }
+        }
+    }
+
+    /**
+     * Saves all unsaved changes to the models to disk
+     */
+    public synchronized void save(){
+        for (Entry<File, CachedModel> entry : models.entrySet()){
+            saveModel(entry.getKey(), entry.getValue());
+        }
+
+        tidyUpModelCache();
+    }
+
+    /**
+     * Updates a point on the lowres-model-grid
+     */
+    public void update(int px, int pz, float height, Color color) {
+        if (color.premultiplied) throw new IllegalArgumentException("Color can not be premultiplied!");
+
+        Vector2i point = new Vector2i(px, pz);
+        Vector3f colorV = new Vector3f(color.r, color.g, color.b);
+
+        Vector2i tile = pointToTile(point);
+        Vector2i relPoint = getPointRelativeToTile(tile, point);
+        LowresModel model = getModel(tile);
+        model.update(relPoint, height, colorV);
+
+        if (relPoint.getX() == 0){
+            Vector2i tile2 = tile.add(-1, 0);
+            Vector2i relPoint2 = getPointRelativeToTile(tile2, point);
+            LowresModel model2 = getModel(tile2);
+            model2.update(relPoint2, height, colorV);
+        }
+
+        if (relPoint.getY() == 0){
+            Vector2i tile2 = tile.add(0, -1);
+            Vector2i relPoint2 = getPointRelativeToTile(tile2, point);
+            LowresModel model2 = getModel(tile2);
+            model2.update(relPoint2, height, colorV);
+        }
+
+        if (relPoint.getX() == 0 && relPoint.getY() == 0){
+            Vector2i tile2 = tile.add(-1, -1);
+            Vector2i relPoint2 = getPointRelativeToTile(tile2, point);
+            LowresModel model2 = getModel(tile2);
+            model2.update(relPoint2, height, colorV);
+        }
+    }
 
 	/**
 	 * Returns the file for a tile
@@ -186,13 +186,13 @@ public class LowresModelManager {
 						} catch (IllegalArgumentException | IOException ex){
 							Logger.global.logWarning("Failed to load lowres model '" + modelFile + "': " + ex);
 
-							try {
-								FileUtils.delete(modelFile);
-							} catch (IOException ex2) {
-								Logger.global.logError("Failed to delete lowres-file: " + modelFile, ex2);
-							}
-						}
-					}
+                            try {
+                                FileUtils.delete(modelFile);
+                            } catch (IOException ex2) {
+                                Logger.global.logError("Failed to delete lowres-file: " + modelFile, ex2);
+                            }
+                        }
+                    }
 
 					if (model == null){
 						model = new CachedModel(pointsPerLowresTile);
@@ -242,7 +242,7 @@ public class LowresModelManager {
 			Logger.global.logError("Failed to save and unload lowres-model: " + modelFile, ex);
 		}
 	}
-	
+
 	private void saveModel(File modelFile, CachedModel model) {
 		try {
 			model.save(modelFile, false, compression);
@@ -278,28 +278,28 @@ public class LowresModelManager {
 	
 	private static class CachedModel extends LowresModel {
 
-		private long cacheTime;
-		
-		public CachedModel(BufferGeometry model) {
-			super(model);
-			
-			cacheTime = System.currentTimeMillis();
-		}
-		
-		public CachedModel(Vector2i gridSize) {
-			super(gridSize);
+        private long cacheTime;
 
-			cacheTime = System.currentTimeMillis();
-		}
-		
-		public long getCacheTime() {
-			return System.currentTimeMillis() - cacheTime;
-		}
-		
-		public void resetCacheTime() {
-			cacheTime = System.currentTimeMillis();
-		}
-		
-	}
-	
+        public CachedModel(BufferGeometry model) {
+            super(model);
+
+            cacheTime = System.currentTimeMillis();
+        }
+
+        public CachedModel(Vector2i gridSize) {
+            super(gridSize);
+
+            cacheTime = System.currentTimeMillis();
+        }
+
+        public long getCacheTime() {
+            return System.currentTimeMillis() - cacheTime;
+        }
+
+        public void resetCacheTime() {
+            cacheTime = System.currentTimeMillis();
+        }
+
+    }
+
 }

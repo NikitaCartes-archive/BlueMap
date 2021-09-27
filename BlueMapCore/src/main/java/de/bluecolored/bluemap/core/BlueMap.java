@@ -24,6 +24,7 @@
  */
 package de.bluecolored.bluemap.core;
 
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import de.bluecolored.bluemap.core.logger.Logger;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.gson.GsonConfigurationLoader;
@@ -33,31 +34,34 @@ import java.util.concurrent.ForkJoinPool;
 
 public class BlueMap {
 
-	public static final String VERSION, GIT_HASH, GIT_CLEAN;
-	static {
-		String version = "DEV", gitHash = "DEV", gitClean = "DEV";
-		try {
-			ConfigurationNode node = GsonConfigurationLoader.builder()
-					.url(BlueMap.class.getResource("/de/bluecolored/bluemap/version.json"))
-					.build()
-					.load();
+    // early-loading this class, to fix a classloading issue
+    private static final RemovalCause RC = null;
 
-			version = node.node("version").getString("DEV");
-			gitHash = node.node("git-hash").getString("DEV");
-			gitClean = node.node("git-clean").getString("DEV");
-		} catch (IOException ex) {
-			Logger.global.logError("Failed to load version.json from resources!", ex);
-		}
-		
-		if (version.equals("${version}")) version = "DEV";
-		if (gitHash.equals("${gitHash}")) version = "DEV";
-		if (gitClean.equals("${gitClean}")) version = "DEV";
-		
-		VERSION = version;
-		GIT_HASH = gitHash;
-		GIT_CLEAN = gitClean;
-	}
+    public static final String VERSION, GIT_HASH, GIT_CLEAN;
+    static {
+        String version = "DEV", gitHash = "DEV", gitClean = "DEV";
+        try {
+            ConfigurationNode node = GsonConfigurationLoader.builder()
+                    .url(BlueMap.class.getResource("/de/bluecolored/bluemap/version.json"))
+                    .build()
+                    .load();
 
-	public static final ForkJoinPool THREAD_POOL = new ForkJoinPool();
-	
+            version = node.node("version").getString("DEV");
+            gitHash = node.node("git-hash").getString("DEV");
+            gitClean = node.node("git-clean").getString("DEV");
+        } catch (IOException ex) {
+            Logger.global.logError("Failed to load version.json from resources!", ex);
+        }
+
+        if (version.equals("${version}")) version = "DEV";
+        if (gitHash.equals("${gitHash}")) version = "DEV";
+        if (gitClean.equals("${gitClean}")) version = "DEV";
+
+        VERSION = version;
+        GIT_HASH = gitHash;
+        GIT_CLEAN = gitClean;
+    }
+
+    public static final ForkJoinPool THREAD_POOL = new ForkJoinPool();
+
 }
