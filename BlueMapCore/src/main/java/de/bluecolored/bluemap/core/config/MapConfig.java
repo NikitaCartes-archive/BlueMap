@@ -59,7 +59,6 @@ public class MapConfig implements MapSettings {
     private boolean renderEdges;
 
     private Compression compression;
-
     private boolean ignoreMissingLightData;
     private boolean persistent;
 
@@ -177,6 +176,10 @@ public class MapConfig implements MapSettings {
 
     public int getSkyColor() {
         return skyColor;
+    }
+
+    public Compression getCompression() {
+        return compression;
     }
 
     @Override

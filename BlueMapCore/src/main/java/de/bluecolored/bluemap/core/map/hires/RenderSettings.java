@@ -25,8 +25,6 @@
 package de.bluecolored.bluemap.core.map.hires;
 
 import com.flowpowered.math.vector.Vector3i;
-import de.bluecolored.bluemap.core.util.Compression;
-import de.bluecolored.bluemap.core.util.CompressionType;
 
 public interface RenderSettings {
 
@@ -73,13 +71,6 @@ public interface RenderSettings {
      */
     default boolean isRenderEdges() {
         return true;
-    }
-
-    /**
-     * The compression that should be used to compress the generated files.
-     */
-    default Compression getCompression() {
-        return new Compression(CompressionType.GZIP);
     }
 
     default boolean isInsideRenderBoundaries(int x, int z) {
