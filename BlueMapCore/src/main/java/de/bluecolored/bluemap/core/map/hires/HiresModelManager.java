@@ -32,7 +32,8 @@ import de.bluecolored.bluemap.core.storage.Storage;
 import de.bluecolored.bluemap.core.world.Grid;
 import de.bluecolored.bluemap.core.world.World;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
 
 public class HiresModelManager {
 
@@ -74,7 +75,7 @@ public class HiresModelManager {
     private void save(final HiresTileModel model, Vector2i tile) {
         try (OutputStream os = storage.write(tile)) {
             model.writeBufferGeometryJson(os);
-        } catch (IOException e){
+        } catch (IOException e) {
             Logger.global.logError("Failed to save hires model: " + tile, e);
         }
     }

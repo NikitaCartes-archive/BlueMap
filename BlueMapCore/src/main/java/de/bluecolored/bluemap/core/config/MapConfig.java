@@ -30,9 +30,9 @@ import com.aayushatharva.brotli4j.Brotli4jLoader;
 import de.bluecolored.bluemap.core.debug.DebugDump;
 import de.bluecolored.bluemap.core.logger.Logger;
 import de.bluecolored.bluemap.core.map.MapSettings;
+import de.bluecolored.bluemap.core.storage.Compression;
 import de.bluecolored.bluemap.core.util.ConfigUtils;
-import de.bluecolored.bluemap.core.util.Compression;
-import de.bluecolored.bluemap.core.util.CompressionType;
+import de.bluecolored.bluemap.core.storage.CompressionType;
 import org.spongepowered.configurate.ConfigurationNode;
 
 import java.io.IOException;
@@ -59,6 +59,7 @@ public class MapConfig implements MapSettings {
     private boolean renderEdges;
 
     private Compression compression;
+
     private boolean ignoreMissingLightData;
     private boolean persistent;
 
@@ -133,7 +134,7 @@ public class MapConfig implements MapSettings {
 
     private Compression loadCompressionSettings(ConfigurationNode node) throws IOException {
         String compressionTypeId = node.node("compressionType").getString("gzip");
-        CompressionType compressionType = CompressionType.GZIP;
+        CompressionType compressionType;
         try {
             compressionType = CompressionType.forId(compressionTypeId);
         } catch (NoSuchElementException ex) {
@@ -143,7 +144,7 @@ public class MapConfig implements MapSettings {
         //backwards-compatibility for 'useCompression' setting
         if (node.node("compressionType").virtual()){
             boolean useCompression = node.node("useCompression").getBoolean(true);
-            compressionType = useCompression ? CompressionType.GZIP : CompressionType.PLAIN;
+            compressionType = useCompression ? CompressionType.GZIP : CompressionType.NONE;
         }
 
         int compressionLevel = node.node("compressionLevel").getInt(-1);
@@ -238,11 +239,6 @@ public class MapConfig implements MapSettings {
     @Override
     public boolean isRenderEdges() {
         return renderEdges;
-    }
-
-    @Override
-    public Compression getCompression() {
-        return compression;
     }
 
 }

@@ -22,11 +22,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package de.bluecolored.bluemap.core.util;
+package de.bluecolored.bluemap.core.storage;
 
 import com.aayushatharva.brotli4j.decoder.BrotliInputStream;
 import com.aayushatharva.brotli4j.encoder.BrotliOutputStream;
 import com.aayushatharva.brotli4j.encoder.Encoder;
+import de.bluecolored.bluemap.core.util.ExtendedGZIPOutputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,25 +38,25 @@ import java.util.zip.GZIPInputStream;
 
 public enum CompressionType {
 
-    PLAIN("plain", "", 0){
+    NONE("plain", "", 0) {
         @Override
-        public InputStream createInputStream(InputStream in) {
+        public InputStream decompress(InputStream in) {
             return in;
         }
 
         @Override
-        public OutputStream createOutputStream(OutputStream out, int compressionLevel) {
+        public OutputStream compress(OutputStream out, int compressionLevel) {
             return out;
         }
     },
-    GZIP("gzip", ".gz", Deflater.DEFAULT_COMPRESSION){
+    GZIP("gzip", ".gz", Deflater.DEFAULT_COMPRESSION) {
         @Override
-        public InputStream createInputStream(InputStream in) throws IOException {
+        public InputStream decompress(InputStream in) throws IOException {
             return new GZIPInputStream(in);
         }
 
         @Override
-        public OutputStream createOutputStream(OutputStream out, int compressionLevel) throws IOException {
+        public OutputStream compress(OutputStream out, int compressionLevel) throws IOException {
             if (compressionLevel != Deflater.DEFAULT_COMPRESSION) {
                 if (compressionLevel < 0) compressionLevel = 0;
                 if (compressionLevel > 9) compressionLevel = 9;
@@ -63,14 +64,14 @@ public enum CompressionType {
             return new ExtendedGZIPOutputStream(out, compressionLevel);
         }
     },
-    BROTLI("brotli", ".br", 6){
+    BROTLI("brotli", ".br", 6) {
         @Override
-        public InputStream createInputStream(InputStream in) throws IOException {
+        public InputStream decompress(InputStream in) throws IOException {
             return new BrotliInputStream(in);
         }
 
         @Override
-        public OutputStream createOutputStream(OutputStream out, int compressionLevel) throws IOException {
+        public OutputStream compress(OutputStream out, int compressionLevel) throws IOException {
             if (compressionLevel != -1) {
                 if (compressionLevel < 0) compressionLevel = 0;
                 if (compressionLevel > 11) compressionLevel = 11;
@@ -84,13 +85,21 @@ public enum CompressionType {
     private final String fileExtension;
     private final int defaultCompressionLevel;
 
-    CompressionType(String id, String fileExtension, int defaultCompressionLevel){
+    CompressionType(String id, String fileExtension, int defaultCompressionLevel) {
         this.id = id;
         this.fileExtension = fileExtension;
         this.defaultCompressionLevel = defaultCompressionLevel;
     }
 
-    public String getId(){
+    public static CompressionType forId(String id) {
+        for (CompressionType compressionType : values()) {
+            if (compressionType.id.equals(id)) return compressionType;
+        }
+
+        throw new NoSuchElementException("There is CompressionType with the id '" + id + "'!");
+    }
+
+    public String getId() {
         return id;
     }
 
@@ -100,7 +109,7 @@ public enum CompressionType {
      *
      * @return The preferred file-extension
      */
-    public String getFileExtension() {
+    public String getFileSuffix() {
         return fileExtension;
     }
 
@@ -110,37 +119,32 @@ public enum CompressionType {
 
     /**
      * Creates an InputStream that decompresses this compression type.
+     *
      * @param in the {@link InputStream} to be decompressed.
      * @return the new decompressed {@link InputStream}.
      * @throws IOException If an I/O error has occurred.
      */
-    public abstract InputStream createInputStream(InputStream in) throws IOException;
+    public abstract InputStream decompress(InputStream in) throws IOException;
 
     /**
      * Creates an OutputStream that compresses in this compression type.
-     * @param out the {@link OutputStream} to be compressed.
+     *
+     * @param out              the {@link OutputStream} to be compressed.
      * @param compressionLevel the level of compression, if applicable. If the compression-level is not in the legal bounds of this compression-type the next closest one will be chosen.
      * @return the new compressed {@link OutputStream}.
      * @throws IOException If an I/O error has occurred.
      */
-    public abstract OutputStream createOutputStream(OutputStream out, int compressionLevel) throws IOException;
+    public abstract OutputStream compress(OutputStream out, int compressionLevel) throws IOException;
 
     /**
      * Creates an OutputStream that compresses in this compression type with the default compressionLevel.
+     *
      * @param out the {@link OutputStream} to be compressed.
      * @return the new compressed {@link OutputStream}.
      * @throws IOException If an I/O error has occurred.
      */
-    public OutputStream createOutputStream(OutputStream out) throws IOException {
-        return createOutputStream(out, getDefaultCompressionLevel());
-    }
-
-    public static CompressionType forId(String id){
-        for (CompressionType compressionType : values()){
-            if (compressionType.id.equals(id)) return compressionType;
-        }
-
-        throw new NoSuchElementException("There is CompressionType with the id '" + id + "'!");
+    public OutputStream compress(OutputStream out) throws IOException {
+        return compress(out, getDefaultCompressionLevel());
     }
 
 }

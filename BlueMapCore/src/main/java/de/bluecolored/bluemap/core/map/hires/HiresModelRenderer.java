@@ -59,8 +59,8 @@ public class HiresModelRenderer {
         BlockModelView blockModel = new BlockModelView(model);
 
         int x, y, z;
-        for (x = min.getX(); x <= max.getX(); x++){
-            for (z = min.getZ(); z <= max.getZ(); z++){
+        for (x = min.getX(); x <= max.getX(); x++) {
+            for (z = min.getZ(); z <= max.getZ(); z++) {
 
                 maxHeight = 0;
                 columnColor.set(0, 0, 0, 1, true);

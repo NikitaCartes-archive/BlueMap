@@ -27,49 +27,39 @@ package de.bluecolored.bluemap.core.storage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
-public enum Compression {
+public class Compression {
 
-    NONE("") {
-        @Override
-        public OutputStream compress(OutputStream out) {
-            return out;
-        }
+    private final CompressionType compressionType;
+    private final int compressionLevel;
 
-        @Override
-        public InputStream decompress(InputStream in) {
-            return in;
-        }
-    },
+    public Compression(CompressionType compressionType) {
+        this(compressionType, compressionType.getDefaultCompressionLevel());
+    }
 
-    GZIP(".gz"){
+    public Compression(CompressionType compressionType, int compressionLevel) {
+        this.compressionType = compressionType;
+        this.compressionLevel = compressionLevel;
+    }
 
-        @Override
-        public OutputStream compress(OutputStream out) throws IOException {
-            return new GZIPOutputStream(out);
-        }
+    public CompressionType getCompressionType() {
+        return compressionType;
+    }
 
-        @Override
-        public InputStream decompress(InputStream in) throws IOException {
-            return new GZIPInputStream(in);
-        }
-
-    };
-
-    private final String fileSuffix;
-
-    Compression(String fileSuffix) {
-        this.fileSuffix = fileSuffix;
+    public int getCompressionLevel() {
+        return compressionLevel;
     }
 
     public String getFileSuffix() {
-        return fileSuffix;
+        return compressionType.getFileSuffix();
     }
 
-    public abstract OutputStream compress(OutputStream out) throws IOException;
+    public OutputStream compress(OutputStream out) throws IOException {
+        return compressionType.compress(out, compressionLevel);
+    }
 
-    public abstract InputStream decompress(InputStream in) throws IOException;
+    public InputStream decompress(InputStream in) throws IOException {
+        return compressionType.decompress(in);
+    }
 
 }

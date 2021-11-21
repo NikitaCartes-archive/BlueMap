@@ -31,14 +31,15 @@ import de.bluecolored.bluemap.core.map.hires.HiresModelManager;
 import de.bluecolored.bluemap.core.map.hires.HiresTileMeta;
 import de.bluecolored.bluemap.core.map.lowres.LowresModelManager;
 import de.bluecolored.bluemap.core.resourcepack.ResourcePack;
-import de.bluecolored.bluemap.core.storage.*;
+import de.bluecolored.bluemap.core.storage.MetaType;
+import de.bluecolored.bluemap.core.storage.Storage;
+import de.bluecolored.bluemap.core.storage.TileType;
 import de.bluecolored.bluemap.core.world.Grid;
 import de.bluecolored.bluemap.core.world.World;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -74,7 +75,7 @@ public class BmMap {
 
         Optional<InputStream> rstateData = storage.readMeta(id, MetaType.RENDER_STATE);
         if (rstateData.isPresent()) {
-            try (InputStream in = rstateData.get()){
+            try (InputStream in = rstateData.get()) {
                 this.renderState.load(in);
             } catch (IOException ex) {
                 Logger.global.logWarning("Failed to load render-state for map '" + getId() + "': " + ex);
@@ -112,7 +113,7 @@ public class BmMap {
         long delta = end - start;
 
         renderTimeSumNanos += delta;
-        tilesRendered ++;
+        tilesRendered++;
     }
 
     public synchronized void save() {
@@ -120,7 +121,7 @@ public class BmMap {
 
         try (OutputStream out = storage.writeMeta(id, MetaType.RENDER_STATE)) {
             this.renderState.save(out);
-        } catch (IOException ex){
+        } catch (IOException ex) {
             Logger.global.logError("Failed to save render-state for map: '" + this.id + "'!", ex);
         }
     }
@@ -184,11 +185,11 @@ public class BmMap {
     @Override
     public String toString() {
         return "BmMap{" +
-               "id='" + id + '\'' +
-               ", name='" + name + '\'' +
-               ", world=" + world +
-               ", storage=" + storage +
-               '}';
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", world=" + world +
+                ", storage=" + storage +
+                '}';
     }
 
 }

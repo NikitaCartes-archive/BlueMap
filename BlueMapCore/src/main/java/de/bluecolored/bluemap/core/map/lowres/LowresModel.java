@@ -30,7 +30,6 @@ import de.bluecolored.bluemap.core.storage.Storage;
 import de.bluecolored.bluemap.core.threejs.BufferGeometry;
 import de.bluecolored.bluemap.core.util.MathUtils;
 import de.bluecolored.bluemap.core.util.ModelUtils;
-import de.bluecolored.bluemap.core.util.Compression;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
