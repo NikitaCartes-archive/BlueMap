@@ -13,6 +13,8 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 16
+    - name: I Hate Windows
+      run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew clean test build
     - uses: actions/upload-artifact@v2
