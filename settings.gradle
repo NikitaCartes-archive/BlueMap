@@ -32,6 +32,7 @@ include ':forge-1.17.1'
 include ':fabric-1.16.2'
 include ':fabric-1.17'
 include ':fabric-1.18'
+include ':fabric-1.19'
 
 
 project(':BlueMapAPI').projectDir = "$rootDir/BlueMapAPI" as File
@@ -54,3 +55,4 @@ project(':forge-1.17.1').projectDir = "$rootDir/implementations/forge-1.17.1" as
 project(':fabric-1.16.2').projectDir = "$rootDir/implementations/fabric-1.16.2" as File
 project(':fabric-1.17').projectDir = "$rootDir/implementations/fabric-1.17" as File
 project(':fabric-1.18').projectDir = "$rootDir/implementations/fabric-1.18" as File
+project(':fabric-1.19').projectDir = "$rootDir/implementations/fabric-1.19" as File
