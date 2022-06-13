@@ -52,7 +52,7 @@ shadowJar {
 task ramappedShadowJar(type: RemapJarTask) {
 	destinationDirectory = file '../../build/release'
 	dependsOn tasks.shadowJar
-	input.set(tasks.shadowJar.archiveFile.get())
+	input.set(tasks.shadowJar.archiveFile)
 	addNestedDependencies.set(true)
 	archiveFileName.set("BlueMap-${archiveVersion.get()}-fabric-1.19.jar")
 }
